@@ -93,3 +93,24 @@ def test_create_notes_scripts_skip_index_and_raw_sources():
             for p in unattributed._iter_user_note_files(notes_dir)
         ]
         assert unattributed_targets == ["_synthesis/team-roster.md", "research/useful.md"]
+
+
+def test_note_lint_requires_explicit_comparison_baseline_and_boolean_verified(tmp_path):
+    lint = _load_script(Path("coral/template/skills/create-notes/scripts/lint.py"))
+    note = tmp_path / "experiment.md"
+    text = (
+        "---\ncreator: agent\ncreated: 2026-09-08T00:00:00Z\n"
+        "type: experiment\nstatus: confirmed\nevidence:\n"
+        '  attempt: "bbbbbbbb"\n  score_delta: 2\n  verified: "false"\n'
+        "---\n# Experiment\n"
+    )
+    note.write_text(text)
+    warnings = lint._lint_note(note, tmp_path, set(), check_index=False)
+    assert any("evidence.baseline" in warning for warning in warnings)
+    assert any("without `evidence.verified: true`" in warning for warning in warnings)
+    note.write_text(
+        text.replace('verified: "false"', "verified: true").replace(
+            "  score_delta:", '  baseline: "aaaaaaaa"\n  score_delta:'
+        )
+    )
+    assert lint._lint_note(note, tmp_path, set(), check_index=False) == []

@@ -20,10 +20,10 @@ mapping is in the table near the end of this file.
 | `generation` | int | ≥ 0 | Bump when a focus note's direction meaningfully shifts (Variant C). | consolidate roster — stable, high-generation focus notes are signals of committed specialization. |
 | `type` | enum | `experiment \| hypothesis \| dead_end \| open_question \| synthesis` | What kind of claim this is. Picks the node category in the knowledge graph. | `notes_graph` node `type`, color/shape in the dashboard graph view |
 | `claim` | string | one testable sentence | The thing this note asserts. Not a title — a falsifiable statement. | future search / aggregation; lint enforces presence per-variant |
-| `status` | enum | `confirmed \| refuted \| untested` | Whether the claim has been verified. | knowledge-graph node color; consolidate filters |
+| `status` | enum | `confirmed \| refuted \| untested` | Author-reported claim status, separate from system evidence checks. | knowledge-graph node color; consolidate filters |
 | `confidence` | enum | `low \| medium \| high` | How confident the team should be in this claim. Discrete on purpose — LLM-written floats aren't calibrated, and a 3-bucket vocabulary is what agents agree on across runs. | knowledge-graph node size; sort order in synthesis views |
 | `based_on` | string OR list[string] | attempt hash(es) | The graded artifact(s) this builds on. Use a YAML list when this work draws on more than one prior attempt — single-prior is the common case but not the only one. | knowledge-graph `based_on` edge (planned), attempt → note crosslink |
-| `evidence` | dict | `{attempt, score_delta, verified}` | The graded artifact behind the claim. `attempt` is a hash, `score_delta` a signed number (`+328` = baseline→this), `verified: true` when the result has been replicated. | `status: confirmed` is only meaningful with `evidence.verified: true` — lint warns on the inconsistency |
+| `evidence` | dict | `{attempt, baseline, score_delta, verified}` | `attempt` and `baseline` identify the result and explicit comparison attempts. `score_delta` is result minus baseline, regardless of score direction. `verified` is the author's replication assertion. | `coral notes --audit` checks records and arithmetic independently; lint warns if a delta lacks a baseline or confirmed lacks verified |
 | `supersedes` | list[string] | note paths or slugs | Prior notes this one replaces. Use this instead of overwriting — the graph then carries the lineage. | knowledge-graph `supersedes` edges (typed) |
 | `refutes` | list[string] | note paths or slugs | Prior notes whose claim this one disproves. | knowledge-graph `refutes` edges (typed) |
 | `touched` | list[string] | file paths in the repo | Code files this work modified. Helps future agents grep for related work. | future blame integration; search |
@@ -31,6 +31,19 @@ mapping is in the table near the end of this file.
 | `next` | list[string] | one-line action items | Concrete next steps in descending expected payoff. Mirrors the body's "## Next" section. | future planner suggestions |
 
 ## Vocabularies in detail
+
+### System evidence audit
+
+`coral notes --audit` and the dashboard report `evidence`, `numeric`,
+`comparability`, and `replication` checks separately from these author fields.
+Each check is `passed`, `failed`, or `unchecked`. Numeric matching does not
+verify causality. `based_on` and `parent_hash` are never inferred as baselines.
+Quote all-numeric hashes in YAML; use full hashes or unique prefixes of at
+least four hex characters. Old notes without structured evidence remain readable.
+
+Reports are computed from fresh snapshots and contain note/attempt content
+hashes. They are returned separately and never written into the source notes.
+See the CLI reference for the optional attempt evaluation-context contract.
 
 ### `type:`
 

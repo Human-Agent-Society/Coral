@@ -213,7 +213,7 @@ async def get_notes(request: Request) -> JSONResponse:
     """
     from coral.hub.notes import list_notes
 
-    entries = list_notes(str(_coral_dir(request)), include_raw=True)
+    entries = list_notes(str(_coral_dir(request)), include_raw=True, audit=True)
     for i, entry in enumerate(entries):
         entry["index"] = i
     return JSONResponse(entries)

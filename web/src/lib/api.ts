@@ -67,6 +67,18 @@ export interface DagResponse {
 }
 
 export interface Note {
+  audit?: {
+    version: number;
+    note_sha256: string;
+    evidence_sha256: Record<string, string>;
+    checks: Record<string, {
+      status: "passed" | "failed" | "unchecked";
+      code: string;
+      message: string;
+    }>;
+    actual_delta?: number;
+    improved?: boolean;
+  };
   date: string;
   title: string;
   body: string;

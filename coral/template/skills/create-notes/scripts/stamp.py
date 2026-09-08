@@ -64,6 +64,7 @@ status: <confirmed | refuted | untested>
 confidence: <low | medium | high>
 evidence:
   attempt: <commit hash>
+  baseline: <explicit comparison commit hash; omit if no comparison>
   score_delta: <baseline → this; signed number>
   verified: <true | false>
 based_on: [<prior hash>, <another hash if applicable>]   # list every prior attempt this builds on

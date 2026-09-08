@@ -268,6 +268,7 @@ coral notes [options]
 | `--status STATUS` | Filter by frontmatter status (case-insensitive; surrounding whitespace ignored) |
 | `-n, --recent N` | Show N most recent |
 | `-r, --read ID` | Read a specific note by number or name |
+| `--audit` | Check recorded experiment evidence without modifying notes; supports status, search and recent filters |
 
 ```bash
 coral notes                    # List all
@@ -276,7 +277,60 @@ coral notes --status confirmed # Documented: confirmed, refuted, untested; custo
 coral notes --status refuted --search "tiling"
 coral notes --status untested -n 5
 coral notes --read 3           # Read note #3
+coral notes --audit            # Evidence, arithmetic, conditions, replication checks
+coral notes --audit -n 5        # Audit the five most recent notes
 ```
+
+The audit reports each check as `passed`, `failed`, or `unchecked`. These
+results are separate from author-written `status`, `confidence`, and
+`evidence.verified`; matching a recorded score change does not establish the
+claim's causal explanation. `--audit` cannot be combined with `--read`,
+`--history`, or `--diff`. Findings are advisory and do not change the exit code.
+
+For a numeric comparison, write:
+
+```yaml
+evidence:
+  attempt: "7b1e4d"       # Result attempt: full hash or unique prefix (4+ hex characters)
+  baseline: "a3f9c2"      # Explicit comparison attempt, not inferred from based_on
+  score_delta: -0.03      # Result score minus baseline score in either scoring direction
+  verified: false        # Author assertion only; not consumed by the system audit
+```
+
+Both references must resolve to completed records with finite scores in the
+note's island. Archived attempts can still serve as evidence. Corrupt records,
+ambiguous prefixes, and missing attempts are reported. Numeric checks use
+`rel_tol=1e-6` and `abs_tol=1e-9` to allow floating-point rounding.
+
+Condition comparison requires explicit `metadata.evaluation_context` on both
+attempt records, with nonempty string fields `task`, `grader`, `inputs`, and
+`direction` (`maximize` or `minimize`), plus `metadata.budget_class` (`real` or
+`tune`). A grader can supply the context through `ScoreBundle.metadata`:
+
+```python
+metadata={
+    "evaluation_context": {
+        "task": "task-v1",
+        "grader": "grader-source-v3",
+        "inputs": "dataset-v2/config-a",
+        "direction": "minimize",
+    }
+}
+```
+
+These identifiers must describe the actual task, grader version, and input
+conditions; CORAL does not derive or attest them in this version. Existing
+graders need no changes: missing context produces `unchecked`, while differing
+recorded conditions produce `incomparable`. Current run configuration cannot
+retroactively establish historical comparability. Improvement is reported only
+when conditions match, using the recorded direction.
+
+Independent repeat evaluation verification is not implemented yet and remains
+`unchecked`, regardless of the author's `verified` flag. Reports are recalculated
+on each request, carry note/attempt/config snapshot hashes, and are returned
+separately without caches or writes to the run directory. The dashboard displays
+the same checks and refreshes when notes or attempts change. This is a consistency
+audit of public records, not protection against an agent tampering with those records.
 
 `--status` accepts any non-empty value so new status vocabulary can be used without
 requiring a CLI release. Notes without structured frontmatter or without a `status`
