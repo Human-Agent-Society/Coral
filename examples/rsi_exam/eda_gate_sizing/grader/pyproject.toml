@@ -1,0 +1,13 @@
+[project]
+name = "rsi-exam-grader"
+version = "0.1.0"
+description = "CORAL artifact replay adapter for RSI-Exam's separate Harbor verifier."
+requires-python = ">=3.11"
+dependencies = ["coral"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rsi_exam_grader"]

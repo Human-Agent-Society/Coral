@@ -1,0 +1,36 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "citywide_signal_coordination",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/citywide_signal_coordination",
+  "sha256": {
+    "environment/Dockerfile": "45cb419477007d2b9000cf8992f0ddbb54490fa654cf1d09cb293c8193cc3755",
+    "environment/methods/main/controller.py": "94537d8bfaa92fc8f180915967cbb05bd4b3353f128ff4b1b2656cc0a63ead4a",
+    "environment/methods/main/tls_info.json": "8bfc047389e22573d03a1ae09f8efc28ee2cc9835969848cf38e107bb454425c",
+    "environment/prepare_data.py": "bddd5a09d01d62516b14003f4e8df0d8ac6855bb4f162f51a3c42589bea9600b",
+    "environment/selfcheck.py": "42b45bc5a670c58e85b4ba430285be075d1c2153cb03254075855dbc02f448ee",
+    "environment/sim/eval_core.py": "440b9f84823bd765cddf518de12cd496cb33a18b5131463368668bf66746ac59",
+    "environment/sim/sim_rpc.py": "3ddffcd0d581db39dc0398516c347590f411c6577cb402853240f79010ff2dd6",
+    "instruction.md": "d71b81708d9ea032760f78b6830e8a21cc4db65f306adaa95bb6a417a9c2883d",
+    "task.toml": "3e3e6a761f174e6290785480d2cab20bc791aab2fc49df8d2773d8280fbd9b67",
+    "tests/Dockerfile": "cc0e161b82bf9ded6e756195cb730655db6b5623cf4e833c195595ffe744ca0f",
+    "tests/eval_core.py": "440b9f84823bd765cddf518de12cd496cb33a18b5131463368668bf66746ac59",
+    "tests/grade.py": "85ce9718c05c8cd9f78484cbd44a3d8001787dc473a43735ba5c9fbb5e923f93",
+    "tests/prepare_data.py": "bddd5a09d01d62516b14003f4e8df0d8ac6855bb4f162f51a3c42589bea9600b",
+    "tests/run_eval.py": "a3ded97af17b3a456e4510e6be6aea9269631377178ede3accc75ae28e650f0f",
+    "tests/sim_rpc.py": "3ddffcd0d581db39dc0398516c347590f411c6577cb402853240f79010ff2dd6",
+    "tests/test.sh": "a33a7afecbd9013cf1c3c65de29b3031c743c0769770a95d2cc848dbb9416785"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 46,
+      "git_blob_sha1": "4c1be735b8196f28e04a64ee448af32b74c0489a"
+    },
+    {
+      "path": "tests/heldout/protocol.json",
+      "size": 2254,
+      "git_blob_sha1": "65d5132789d88a2bad573ea595b7dbf0fbd395ba"
+    }
+  ]
+}

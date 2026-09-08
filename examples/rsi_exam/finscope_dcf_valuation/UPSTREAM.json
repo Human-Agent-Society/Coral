@@ -1,0 +1,73 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "finscope_dcf_valuation",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/finscope_dcf_valuation",
+  "sha256": {
+    "environment/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "environment/Dockerfile": "316e67ac2d28ffb9f2b154dec7bfe7012d1ad49ec214ed24c844af13a10e3a35",
+    "environment/README.md": "bc36c04550608805255e68855912fc4f30aff1708d3c59296c908bbc2efc4811",
+    "environment/TODO.md": "d0480028dce0d450d414734f23cdcce46d790ca42feb237885c4da4eb0632bf3",
+    "environment/data/data_dictionary.md": "321669af425e920ec96d4ddea7dfd24423c889b9cf7a26ea47a9f642b0536ed4",
+    "environment/fit_calibration.py": "417d823b612662015f026cdbd550f2b6aabafc8619eec5249ea36185fe4c6892",
+    "environment/lib/fin_compute_engine.py": "734fe3e23c97d476f12973063e947b1f8a37d80cd67a65af689ad016d018d457",
+    "environment/lib/paneldata.py": "b2db72194ba58ee95ba4556f1992be57728bf29891427affc1a3cfcea1619e2b",
+    "environment/lib/valuation.py": "e87460d1bde4a0401357c3a691aeabadbe7297039f8c3a7ba4b232bf0fd4ee6a",
+    "environment/methods/main/forecaster.py": "7d567b14275bc3de3b4f772767111991defcecbecdbaa419709efe0aa0dcd45a",
+    "environment/methods/own_history_trend/forecaster.py": "6343fb175557588eb0a467ba2725c57a658afa1bb4e3ece080f6635f871ca52c",
+    "environment/notes/analyst_notebook.md": "bc94475b98e24be783a482626d0fe2be0d9583c9d985f9e09b459a10132d7647",
+    "instruction.md": "6872d8d4a3245047420f90e251aef45e071353b94ec87c8ad4dfdd9bbcf6341f",
+    "task.toml": "07828f3c7e962a1c0e8c1640839403481bdc4f450ccc810bcce02e3425a81331",
+    "tests/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "tests/Dockerfile": "099289f8599e4d3b937229821726e2cad3db36bfdeaca86d466f2169e485ea65",
+    "tests/grade.py": "ccec56d297ed99bd26875b4b677d7afc132c17ede6f3139f38f56cd1c8349aca",
+    "tests/heldout/_fin_compute_engine.py": "175aada289e3418d3726308a36e2c94d7c8ce1f2f0df19d043ffa8076f11d28e",
+    "tests/heldout/_valuation.py": "7f8a533dacec10bd09e7eebb870e0f32b2d561a534053cce5dba540bd596d7ad",
+    "tests/libpub/fin_compute_engine.py": "734fe3e23c97d476f12973063e947b1f8a37d80cd67a65af689ad016d018d457",
+    "tests/libpub/valuation.py": "e87460d1bde4a0401357c3a691aeabadbe7297039f8c3a7ba4b232bf0fd4ee6a",
+    "tests/solve.py": "9400c4741594746a5bcb6cbb7053d93636a61268967b99c678c684f9107df16e",
+    "tests/test.sh": "c51601dc4ee9f7f0a1c2d59aa647e6283f66bb8bd37f36d48926c3054d81346a"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/calibration_truth.csv",
+      "size": 9281,
+      "git_blob_sha1": "222a49bb1019efd34fa4399f8f42a545adee6518"
+    },
+    {
+      "path": "environment/data/coverage.csv",
+      "size": 22457,
+      "git_blob_sha1": "c942178d9fd5ddbb48f8a47a7f02205953cc7b28"
+    },
+    {
+      "path": "environment/data/fundamentals.csv",
+      "size": 61069,
+      "git_blob_sha1": "64202f57d68a19d1bc3e2e49dfac0f1f362855fc"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 51,
+      "git_blob_sha1": "6325a42d1f89d05693aae516dcb03d6e5c19dccb"
+    },
+    {
+      "path": "tests/features/calibration_truth.csv",
+      "size": 9281,
+      "git_blob_sha1": "222a49bb1019efd34fa4399f8f42a545adee6518"
+    },
+    {
+      "path": "tests/features/coverage.csv",
+      "size": 22457,
+      "git_blob_sha1": "c942178d9fd5ddbb48f8a47a7f02205953cc7b28"
+    },
+    {
+      "path": "tests/features/fundamentals.csv",
+      "size": 61069,
+      "git_blob_sha1": "64202f57d68a19d1bc3e2e49dfac0f1f362855fc"
+    },
+    {
+      "path": "tests/heldout/holdout_truth.json",
+      "size": 166707,
+      "git_blob_sha1": "b5f8d5b8fca8d46e92706764adbe2785fed6b7f9"
+    }
+  ]
+}

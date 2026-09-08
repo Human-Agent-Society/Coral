@@ -1,0 +1,17 @@
+[
+  {
+    "path": "environment/eval/OpenROAD_helper.tcl",
+    "size": 1912,
+    "git_blob_sha1": "0e9403de8d87eaa151bb4cc1d4d6c4fe548792af"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 2489,
+    "git_blob_sha1": "c8bef474bd72dc941d207b96ff06f10dd5b0c31a"
+  },
+  {
+    "path": "tests/eval/OpenROAD_helper.tcl",
+    "size": 1912,
+    "git_blob_sha1": "0e9403de8d87eaa151bb4cc1d4d6c4fe548792af"
+  }
+]

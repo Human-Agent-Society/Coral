@@ -1,0 +1,12 @@
+[
+  {
+    "path": "tests/anchors.json",
+    "size": 46,
+    "git_blob_sha1": "4c1be735b8196f28e04a64ee448af32b74c0489a"
+  },
+  {
+    "path": "tests/heldout/protocol.json",
+    "size": 2254,
+    "git_blob_sha1": "65d5132789d88a2bad573ea595b7dbf0fbd395ba"
+  }
+]

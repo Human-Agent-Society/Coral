@@ -1,0 +1,22 @@
+[
+  {
+    "path": "environment/data/visible.json",
+    "size": 4740021,
+    "git_blob_sha1": "821bdfadc1922db3ab18916f93171a3f62408432"
+  },
+  {
+    "path": "tests/heldout/hidden_anchors.json",
+    "size": 2234,
+    "git_blob_sha1": "cec550cf76d2a024ba2f08bc0b3ba1348c6140cc"
+  },
+  {
+    "path": "tests/heldout/hidden_data.json",
+    "size": 9119479,
+    "git_blob_sha1": "0acdceb9428df7b7f3aecc226347052121847e2c"
+  },
+  {
+    "path": "tests/heldout/public_anchors.json",
+    "size": 2004,
+    "git_blob_sha1": "8a233de53bc686e89facace2387c6338b64774e7"
+  }
+]

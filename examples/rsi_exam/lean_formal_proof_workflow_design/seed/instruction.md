@@ -1,0 +1,59 @@
+# Design a verifier-guided Lean 4 proof workflow
+
+You inherit a small compiler-guided proof workflow over a pinned language model. Improve the workflow in `/app/methods/main/` so it completes canonical Lean 4 theorem statements reliably under a tight inference and compiler-feedback budget. The verifier copies your final method into a clean process, re-runs it on held-out theorems, and counts only proofs accepted by the pinned Lean kernel.
+
+## Hard Constraints
+
+1. Edit only `/app/methods/main/`; you may add sibling `.py` helpers and import them from `solver.py`.
+2. Keep `answer_batch(examples, llm, lean, budget) -> list[str]`. Return one proof body per input, in order. Every proof body must start with the Lean token `by`.
+3. Per problem you may use at most 3 fixed-model calls, 12,000 total model tokens, 4 Lean checks, and 180 seconds wall time. A budget overrun scores that problem wrong.
+4. Use only the injected `llm` and `lean` callables. Do not open network connections, spawn processes, inspect host files, or import another model or prover.
+5. The formal statement is fixed. Do not emit a replacement theorem, declaration, axiom, `sorry`, `admit`, unsafe code, metaprogram execution, or commands such as `#eval`.
+6. Do not branch on problem IDs or encode per-problem proof tables. The hidden process replaces every ID with the same opaque value.
+7. Compiler feedback is untrusted diagnostic text, not a proof. A problem is correct only when the trusted parent independently compiles the final proof with the canonical statement.
+8. The submission guard rejects filesystem/network/process modules (`os`, `pathlib`, `socket`,
+   `subprocess`, HTTP clients, FFI, import machinery, and similar capabilities), dynamic code/file
+   calls, sealed-data names in any string literal, and any literal `["id"]`/`.get("id")` lookup.
+   Generated `__pycache__`/bytecode is ignored; every other submitted file must be regular Python
+   source. Pure-computation modules such as `re`, `json`, `math`, and `hashlib` are allowed.
+
+## What You Have
+
+- `/app/data/visible.jsonl`: a frozen 54-theorem development split. Each row contains an opaque ID, the natural-language source problem, a difficulty/subtopic label, and the canonical Lean `formal_statement` ending in `:=`.
+- `/app/methods/main/`: the editable seed harness. It performs one model proposal, one Lean check, and at most one compiler-diagnostic repair.
+- `/app/selfcheck.py`: evaluates the complete fixed visible split through the same model proxy, proof-body validator, pinned Lean compiler, budgets, and aggregation used by the verifier. Always evaluate all 54 rows when comparing checkpoints.
+- The release protocol uses the immutable `gpt-5.4-2026-03-05` snapshot, exposed through deployment alias `gpt-5.4`, at temperature 0 and seed 0.
+
+The useful workflow primitives are proposal diversity, compiler-guided repair, error summarization, proof extraction, tactic fallback, and budget-aware stopping. The natural-language problem can help with proof planning, but the Lean statement is the authoritative target.
+
+## What You Submit
+
+Leave your best implementation under `/app/methods/main/`. `solver.py` must expose:
+
+```python
+def answer_batch(examples, llm, lean, budget):
+    """
+    examples: list[dict] with problem, formal_statement, difficulty, and subtopic
+    llm:      llm(messages, max_tokens=..., stop=...) -> str
+    lean:     lean(proof_body) -> {"ok": bool, "diagnostics": str}
+    budget:   fixed call/token/check/wall limits
+    returns:  list[str], one Lean proof body beginning with `by` per example
+    """
+```
+
+The verifier collects `/app/methods`, imports no submitted code in its trusted process, and runs one fresh low-privilege child per hidden theorem. Non-generated files other than Python source, symlinks, special files, oversized source trees, invalid Unicode, and malformed outputs are rejected.
+
+## How It Is Judged
+
+For each hidden row, the trusted parent combines the pinned imports and canonical `formal_statement` with your returned proof body, rejects forbidden proof constructs, and invokes the pinned Lean 4.9/mathlib compiler in a bounded low-privilege process. There is no LLM judge and no agent-authored success flag. The raw metric is:
+
+```text
+lean_compile_accuracy_pct = 100 * compiled hidden theorems / hidden theorems
+```
+
+The normalized score is a monotonic function of sealed compile accuracy and is not shown to you;
+optimize raw compile accuracy and generalization. Submission-caused model rejections (HTTP
+400/413/422), compiler timeouts, malformed output, budget overruns, or any rejected construct count
+as incorrect. Missing or drifted runtime configuration, model endpoint outage/authentication/429/5xx
+failures, missing trustworthy generated-token usage, unavailable Lean, or unavailable kernel
+isolation invalidate the verifier run rather than masquerading as a participant score.

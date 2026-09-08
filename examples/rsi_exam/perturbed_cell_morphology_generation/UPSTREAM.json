@@ -1,0 +1,37 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "perturbed_cell_morphology_generation",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/perturbed_cell_morphology_generation",
+  "sha256": {
+    "environment/.dockerignore": "90346fb87e27a97bccf04b4fdd9166daebe92a0d824988e4eddfe5282addd141",
+    "environment/Dockerfile": "21b16d5c75b2f29518a3f07ace57481419128e76cbe2e1ebf1c7cde6acf63ee4",
+    "environment/copy_check.py": "e271bd62f2967eccfb957103c69054e44b33116c38b4939be6607e7c3264c327",
+    "environment/docker-compose.yaml": "e7444dfa29c879e1a9c16d1d5264f750aaf79929602deda83f8522374d2ab138",
+    "environment/fid_metric.py": "fce3db0d9fa32fa91b1753daa090d7c9b61bdc2ceb2e0d08771a1ed00a8d03cf",
+    "environment/methods/main/solver.py": "e08439eec6cb7ba3c6d8bc6f02f1c23ef64b7b8273a7db23d7c7dc3a728b90df",
+    "environment/prepare_data.py": "d66b22cbb7f9e1ef5f5f43b89f1b333fecaa26a8149f7e83aae6ddf9817d22bc",
+    "environment/requirements.lock.txt": "1dc3d43dbb55b86240eb06135a7f537d8d531a0467fcd991ae6f47db2597caf1",
+    "environment/selfcheck.py": "a6e93a15e5c64807c31cb9dae16437652974195c74ece928e352367c85f6b0c1",
+    "environment/train.py": "b5f5b5b2184dfc65efd5b1bfd0f761dca02671823446c2e2cb43b7cd70e7c85b",
+    "instruction.md": "53473b0472b82d02ee843a7c3120f9131dc45929a0687323d7bc0ae3a0b2b470",
+    "task.toml": "acaa4f42361f23baa3c09a37d26897c82f14aa01ebd870b8f7d64ec863973de6",
+    "tests/.dockerignore": "c1a4a9acf46f8928cb221724af1d7f826574b706a22bdf4729cad78b40e79e71",
+    "tests/Dockerfile": "23d085fa4a0e671ca100b753e147bc2700b6a5e86e7e81dfb70fc28c79e0a230",
+    "tests/copy_check.py": "e271bd62f2967eccfb957103c69054e44b33116c38b4939be6607e7c3264c327",
+    "tests/docker-compose.yaml": "e7444dfa29c879e1a9c16d1d5264f750aaf79929602deda83f8522374d2ab138",
+    "tests/fid_metric.py": "fce3db0d9fa32fa91b1753daa090d7c9b61bdc2ceb2e0d08771a1ed00a8d03cf",
+    "tests/grade.py": "ae687709323370db601158b244ba1e1f34c63eb6a248c8422feb9d0dc6fb9a4c",
+    "tests/prepare_data.py": "eea9fafc339452e4db17653a6ea192efb9c8fbcf0f882f239215a72984204ed4",
+    "tests/requirements.lock.txt": "1dc3d43dbb55b86240eb06135a7f537d8d531a0467fcd991ae6f47db2597caf1",
+    "tests/run_predict.py": "7755600e9bced548eccd2062c11402bef4cc72617beada302f2e3fd99d38ccda",
+    "tests/test.sh": "0a39c662d52b735b0ab401755ec22065ed89d6f87499034d23863a554e268e19"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 76,
+      "git_blob_sha1": "c455a8c0183d63d77542492e897dd523ba0f4c53"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+schema_version = "1.3"
+artifacts = ["/app/submission", "/app/methods"]
+
+[task]
+name        = "autoresearch-arena/clevr_cogent_grpo_qwen2vl"
+description = "Train Qwen2-VL-2B-Instruct with GRPO on CLEVR-CoGenT-A so it generalizes to hidden CLEVR-CoGenT-B and SuperCLEVR; graded by mean keyword-matching counting accuracy."
+authors     = [{ name = "xia peng" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 14400.0
+network_mode = "public"
+cpus       = 16
+memory_mb  = 131072
+storage_mb = 204800
+
+[environment.env]
+HF_HUB_OFFLINE           = "1"
+HF_DATASETS_OFFLINE      = "1"
+TRANSFORMERS_OFFLINE     = "1"
+WANDB_MODE               = "offline"
+
+[verifier]
+timeout_sec      = 10800.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+
+[verifier.env]
+HF_HUB_OFFLINE           = "1"
+TRANSFORMERS_OFFLINE     = "1"
+
+[scoring]
+metric    = "mean_accuracy_pct"
+direction = "higher"

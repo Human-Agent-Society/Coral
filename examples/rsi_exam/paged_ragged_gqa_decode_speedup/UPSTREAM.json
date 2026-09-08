@@ -1,0 +1,99 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "paged_ragged_gqa_decode_speedup",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/paged_ragged_gqa_decode_speedup",
+  "sha256": {
+    "environment/.dockerignore": "ded25e9910f93a1678df2bd2a88cef6469db0c27dec150bc15f0a53042fe017e",
+    "environment/Dockerfile": "5aed4e8fa10adf607594ef49f26a907b82ec48607be40674db6a8cbf2cda81de",
+    "environment/child_eval.py": "aa42d25ea105b9c820e24e433176ae27b260764b80aabd44ce6d463a3895c629",
+    "environment/docker-compose.yaml": "7d85a280293126eb90d20a906ad1c7aa7a75ae902070f76abfc0f7d6823e859b",
+    "environment/methods/experiment_log.md": "abdcfaa73172bfbf22fb350de61a1cc6db40b1c479670b6d135595d3bee9f915",
+    "environment/methods/main/solver.py": "25d150e3f6c8a14faea71dbb6a9bda45e7dbf54cd778297bb2fdf0c426f351c3",
+    "environment/protocol.py": "b557ff37211058e0ce2ca6af2379bbc2c4303cef0ab3c549e6796c03080bdff9",
+    "environment/restricted_runner.py": "4e4790ded786e1c9d7bb77c21767831f8241d472eece386e5a4f4a6b76864328",
+    "environment/selfcheck.py": "d5894f89f9adfda0b46bdc31a1ee114e9b02b87e0879ba223e36187039b452a4",
+    "environment/submission_guard.py": "b5f34e6346ff90a741c3f8b4b6dfd13c374fb2864fc78525521c72013b29e751",
+    "instruction.md": "209ef55a194920e0f06afeb83856180dfd5ccae754dd6c5f562d48967165e7e4",
+    "task.toml": "c6a33676688f02ee976e83a765b838fc038991b0a144f747c85750ed888dab4c",
+    "tests/.dockerignore": "ded25e9910f93a1678df2bd2a88cef6469db0c27dec150bc15f0a53042fe017e",
+    "tests/Dockerfile": "324fe147fdae68628b5fc0fce0cb34372055af62454d927641847e5112161c2c",
+    "tests/author_calibrate.py": "2bbb5df4542cb80dded4923bc528f419ec3b58f8e220e49d8c4a659c0045584e",
+    "tests/author_calibrate_exclusive.py": "84ff536864993b184511bc3f2fb6841a70c0b87c2f3049344cecb7725d71397f",
+    "tests/author_calibrate_exclusive_role_process.py": "6770f25407535fd368eaed27bf2fb29d7f59793543a940df93df30229429b508",
+    "tests/author_pressure_exclusive_role_process.py": "37f765e19f253ed7dd9b6e426ff1d28761a46b162f9e63c787b63617210f8282",
+    "tests/author_pressure_v25_exclusive_role_process.py": "0e8a22ca9c113c285f56b58e412f77e05046cdfe2aa1e0ed356cdb033fb1a98a",
+    "tests/author_pressure_v25_r12_bracketed.py": "eeae6856ec3ad56b755b21381367d52aa4a208fecfb37a5ed591cfe9f5c77350",
+    "tests/build_anchor_manifest.py": "31d2d8ee813a58d77b37c6600bc80fdb8aef7940aa8698c0a36a69f63210fdbd",
+    "tests/build_pressure_manifest.py": "e538c8b407df07755af960df6b26b25349f3d41ab4c7194fe24bc5247947ebf4",
+    "tests/build_pressure_v25_manifest.py": "bdf5185b3fe255da8fa9da27fa38c2d0e4f35f3372527cf3a5eba4d392d3d8ff",
+    "tests/child_eval.py": "99befb4511e65c0f94a3c021c01e763067e7c64f10313933e700b2aa78965fdd",
+    "tests/docker-compose.yaml": "d80c653ee781fd488f56aa7a46f25b6a52b4836a8d3c7f5020644a939ef2feef",
+    "tests/grade.py": "79a9f184e23f7210f056bf733135c584d5813754d702330ec3e42f79e96ab62a",
+    "tests/production_baseline/solver.py": "25d150e3f6c8a14faea71dbb6a9bda45e7dbf54cd778297bb2fdf0c426f351c3",
+    "tests/protocol.py": "b557ff37211058e0ce2ca6af2379bbc2c4303cef0ab3c549e6796c03080bdff9",
+    "tests/restricted_runner.py": "4e4790ded786e1c9d7bb77c21767831f8241d472eece386e5a4f4a6b76864328",
+    "tests/speedup_math.py": "fb36815536f25ff055551252e0c82297aeead45bd846fa66f42704bddae52e90",
+    "tests/submission_guard.py": "b5f34e6346ff90a741c3f8b4b6dfd13c374fb2864fc78525521c72013b29e751",
+    "tests/test.sh": "25a4d17497e08558ded7c83f3b612a21a26233835bffd492855c5ffc8a96cb33",
+    "tests/test_calibration_builder.py": "b6a8b4c13037fea9de04ef6fb9db01b4d65fbfc485a6f4dfb1975895fa4481c0",
+    "tests/test_isolation.py": "2ed762fb7157c490eb3b118d3a2709b6d1171a1600fa0bc3b83463010fbf6c77",
+    "tests/test_memory_safe_protocol.py": "dcf918ff6d2e728abbc55fa1387c4150ff79119f8e653b0bda62644afda7e583",
+    "tests/test_protocol.py": "f595c6ba3adf634d3e309460eaa0ea1608315a3616e90018dd2fe33fbd5ba167",
+    "tests/test_security.py": "e1d9f2de49de4c32dc0d431fb31667f47785cd5e3307a9e599bf5bb6cb4b8b97",
+    "tests/test_speedup.py": "1895fc33a2fffca6d6a7a0044d3aad5e845918ba3c2b83cb4dd18d511f138c63",
+    "tests/test_vectorized_baseline.py": "5f293fd12e87ec9a9cc91283c8e889006ba9c45b4314aa474ba198a1e0afec28"
+  },
+  "downloads": [
+    {
+      "path": "environment/problems/visible_spec.json",
+      "size": 5756,
+      "git_blob_sha1": "ecf6c5978876d57de4ccef27aa6fb8cd278f5f82"
+    },
+    {
+      "path": "tests/anchor_inputs.json",
+      "size": 495,
+      "git_blob_sha1": "247e9c8647e8648d787925cc8a417889f392b49c"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 492,
+      "git_blob_sha1": "ca60740a9d6488d769618572dd692d35ffeb4fe4"
+    },
+    {
+      "path": "tests/calibration/split_manifest.json",
+      "size": 594,
+      "git_blob_sha1": "58836c34cdf7252df270e822304ee948fa83985b"
+    },
+    {
+      "path": "tests/calibration/test_spec.json",
+      "size": 5796,
+      "git_blob_sha1": "a35525fd0f90a2be49542823c72dae3f4ada8ec8"
+    },
+    {
+      "path": "tests/heldout/anchors.json",
+      "size": 386,
+      "git_blob_sha1": "a4d75477338de7d6541fe57d0a7cd7fed818cc6a"
+    },
+    {
+      "path": "tests/heldout/benchmark_context.json",
+      "size": 1598,
+      "git_blob_sha1": "b079075bf948fabd3a59089dfaf6a94afbf22ad7"
+    },
+    {
+      "path": "tests/heldout/split_manifest.json",
+      "size": 500,
+      "git_blob_sha1": "0c6a9f323afca2fd0fac891d807a54ba9e60890e"
+    },
+    {
+      "path": "tests/heldout/test_spec.json",
+      "size": 7324,
+      "git_blob_sha1": "a76f51761cf8a76056b6f4fe00fe25f28d97564d"
+    },
+    {
+      "path": "tests/visible_spec.json",
+      "size": 5756,
+      "git_blob_sha1": "ecf6c5978876d57de4ccef27aa6fb8cd278f5f82"
+    }
+  ]
+}

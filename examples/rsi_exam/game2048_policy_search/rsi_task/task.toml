@@ -1,0 +1,33 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name = "autoresearch-arena/game2048_policy_search"
+description = "Improve a Python policy for seeded 2048 games, using public games for feedback and sealed same-distribution seeds for final scoring."
+authors = [{ name = "xiongkaiwen" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 600.0
+network_mode = "public"
+cpus       = 4
+memory_mb  = 12288
+storage_mb = 10240
+gpus       = 0
+
+[verifier]
+timeout_sec      = 5400.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+cpus       = 4
+storage_mb = 2048
+gpus       = 0
+
+[scoring]
+metric = "per_seed_2048_score"
+direction = "higher"

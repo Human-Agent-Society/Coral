@@ -1,0 +1,42 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "locomo_longterm_memory",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/locomo_longterm_memory",
+  "sha256": {
+    "environment/Dockerfile": "f60a091586d9981174213014cdd0af565a940df3d25aa79f166e98508b948fc6",
+    "environment/eval/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "environment/eval/dataset.py": "153d3954fcfb5e40f5157fcd992501458023e02e7901d38756523daf9bba6352",
+    "environment/eval/scoring.py": "ee5da86fba21bb526f5d127f179be9c605aa40be7af4096f545f44a25c35afde",
+    "environment/methods/main/memory_system.py": "0d1070092ae7903ae598dbb43c6fb92bde1686a1540fe5986481721a173e0bae",
+    "environment/methods/main/memsys/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "environment/methods/main/memsys/answering.py": "9a07f46fa1ddd392c0e242ef44e403046a105510dfe9c748e8861605c391f07a",
+    "environment/methods/main/memsys/extractor.py": "9c9a00b1f2566449a3fa6b5799e3b80800ac36a29a232864cb1994359d31bcee",
+    "environment/methods/main/memsys/retrieval.py": "a84951c6dc74f9439e2c818d3f59ea1e7885424809bed98c7f5d63e2893b81d3",
+    "environment/selfcheck.py": "a3b5a5b8da13420dc92a6e5772cc2648fcff02c304b580488e04eecffb0e9d54",
+    "instruction.md": "f8ac44e29bee086753171dab3a1d133c247b27cffb9634add91d684318507029",
+    "task.toml": "096eec2d9266d6dc582d254aedff04d997ecf505a783837b01fe6824433f76bb",
+    "tests/Dockerfile": "d557e327613119c84915b4b355535d140b814fc6677899c7da18d1b9be1cd9e3",
+    "tests/grade.py": "4e25c79a66c8e060435d43071faaf6e6935a3c17d96a5ae1397ba1ab4bcf918f",
+    "tests/prepare_split.py": "fca4703ba0b8bd8518e5d18a54f8c56c8f3f900c6f620f4d3733915267f97860",
+    "tests/run_holdout.py": "2d998223417e075748112fbf6abd1e8939f6d4975c5230a16353a3fbdca8fa92",
+    "tests/test.sh": "9799bcff35e9cb41636a96d932a4a7a4fe94727db76ed750ccdbfd53472a70b6"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/conversations_visible.json",
+      "size": 937957,
+      "git_blob_sha1": "203f4fb5d25de8dc9fcbac772319622aab25f373"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 103,
+      "git_blob_sha1": "390c1e63e52a03bca41c298ea2ca7a9f7468d7d0"
+    },
+    {
+      "path": "tests/heldout/holdout_sealed.json",
+      "size": 1231015,
+      "git_blob_sha1": "bdb308919b1f659a81dcc72d25888a9309f12d1d"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+services:
+  main:
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE:-0}"]
+              capabilities: [gpu]

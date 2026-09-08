@@ -1,0 +1,20 @@
+FROM python:3.11-slim-bookworm@sha256:b18992999dbe963a45a8a4da40ac2b1975be1a776d939d098c647482bcad5cba
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+COPY requirements.evaluator.txt /tmp/cell-evaluator-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/cell-evaluator-requirements.txt \
+    && rm -f /tmp/cell-evaluator-requirements.txt
+
+WORKDIR /opt/cell-visible
+COPY visible_server.py /opt/cell-visible/visible_server.py
+COPY evaluator_data/visible_labels.csv /opt/cell-visible/visible_labels.csv
+COPY data/classes.txt /opt/cell-visible/classes.txt
+COPY build_validate_assets.py /tmp/build_validate_assets.py
+
+RUN python /tmp/build_validate_assets.py evaluator \
+    && rm -f /tmp/build_validate_assets.py \
+    && chown -R root:root /opt/cell-visible \
+    && chmod -R a-w /opt/cell-visible
+
+ENTRYPOINT ["python", "/opt/cell-visible/visible_server.py"]

@@ -1,0 +1,7 @@
+/rsi_task/environment/data/calibration.jsonl
+/seed/harbor/environment/data/calibration.jsonl
+/rsi_task/environment/data/grade.jsonl
+/seed/harbor/environment/data/grade.jsonl
+/rsi_task/tests/anchors.json
+/rsi_task/tests/heldout/calibration.jsonl
+/rsi_task/tests/heldout/grade.jsonl

@@ -1,0 +1,112 @@
+task:
+  name: rsi-exam-device_iv_regime_extrapolation
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Commit terminal-current\
+    \ numbers for a diode lot beyond the safe test window\n\nYou are an AI agent assisting the device\
+    \ engineer who must qualify a new\npower-diode lot at a semiconductor supplier. The probe station\
+    \ covers only a safe\nbias/temperature window \u2014 290\u2013325 K, reverse bias to \u22123.6 V \u2014\
+    \ but the\nqualification sign-off due this quarter must commit leakage and conduction\nnumbers at\
+    \ mission-profile extremes: 385\u2013400 K and reverse bias to \u221226 V,\nwhere measurement is destructive\
+    \ and the burn-in rig is booked for months.\nOverstate the lot's capability and an automotive customer\
+    \ eats field\nreturns; understate it and the socket goes to a competitor. You inherit a\nstarting\
+    \ prediction method that extrapolates a fitted window trend; your\njob is to build the method the\
+    \ lab will run on every future lot \u2014 it is\nre-run, unchanged, on qualification devices whose\
+    \ extreme-regime behavior\nyou never see.\n\n## Hard Constraints\n\n- Submit a **method**: `methods/main/solver.py`\
+    \ defining exactly\n  `predict(record) -> list of floats` \u2014 the predicted `log10` of the\n  absolute\
+    \ terminal current in amperes at each point of\n  `record[\"extreme\"]`, in order; a pure function\
+    \ of one device record.\n- `record` is a dict with the device's safe-window measurements\n  (`window`:\
+    \ 56 `{T, V, I}` points) and the target grid (`extreme`:\n  `{T, V}` points) \u2014 the same schema\
+    \ as the practice records, minus the\n  truth field.\n- Each call runs in a **fresh process under\
+    \ a 180-second wall-clock\n  budget** (measured outside your process). Anything that takes longer\
+    \ than\n  **195 s** (budget + 15 s grace) is scored as the worst case for that\n  device, and the\
+    \ process is hard-killed at **210 s** regardless; crashed or\n  wrongly-shaped outputs are scored\
+    \ the same worst case. The grader records\n  a timeout and the child's exit status separately from\
+    \ \"produced no\n  output\", so both show up in the run log.\n- **The whole grading stage is capped\
+    \ at 7200 s wall-clock**, inside a\n  container declared at **4 CPUs / 1024 MiB** \u2014\n  the same\
+    \ shape as your own container, so a method that fits here fits\n  there. Devices are graded **serially**,\
+    \ one subprocess at a time: with 16\n  qualification devices the stage budget is the binding constraint\
+    \ only if\n  your average device takes more than ~7.5 minutes, which the 180 s\n  per-device budget\
+    \ already forbids.\n- A note on shared memory: this container's `/dev/shm` is **64 MiB** and\n  cannot\
+    \ be enlarged. A `multiprocessing.shared_memory` / `joblib` memmap\n  segment larger than that is\
+    \ created successfully and then faults\n  (**SIGBUS**) on first write, killing your process with no\
+    \ output. Pass\n  large arrays to workers by fork inheritance or through ordinary files in\n  `TMPDIR`\
+    \ instead. The grader reports a SIGBUS kill as its own failure\n  reason, distinct from \"produced\
+    \ no output\".\n- The graded lot is **16** devices against your **24** practice devices \u2014\n \
+    \ about **0.67x** the visible count, on the identical 12-point extreme grid.\n  Grading is therefore\
+    \ *cheaper* than one full `selfcheck.py` pass; sizing\n  your method against your own self-check wall-clock\
+    \ is safe here.\n- CPU only, no network. Runtime: Python 3 with numpy and scipy, plus the\n  DEVSIM\
+    \ TCAD device simulator (`import devsim`) \u2014 build physics models of\n  the lot if you choose\
+    \ to. BLAS/OpenMP threading is pinned to **4** in both\n  this image and the grader, so your local\
+    \ timings match the graded ones.\n- Only files under `methods/` are collected and re-run: keep everything\n\
+    \  `predict()` imports inside `methods/main/`. Do not modify `data/`,\n  `examples/`, `selfcheck.py`\
+    \ or `run_solver.py`.\n\n## What You Have\n\n- `data/practice/instances.json` \u2014 24 practice devices\
+    \ with **complete\n  extreme-regime truth** (noise-free `log10|I|` on the full 12-point\n  extreme\
+    \ grid), documented field by field in `data/practice/DATA_CARD.md`.\n  This is your only labeled data;\
+    \ study it in full.\n- `data/qualification/records.json` \u2014 the 16 qualification devices your\n\
+    \  method will actually be judged on: same window protocol, same extreme\n  grid, **no truth**. They\
+    \ are a fresh draw from the same production\n  population as the practice fleet, with part of the\
+    \ lot weighted toward\n  the harder corner of that same population.\n- `examples/devsim_diode_demo.py`\
+    \ \u2014 a working DEVSIM drift-diffusion model\n  of this device architecture (mesh, doping, equation\
+    \ assembly, bias\n  ramping with convergence back-off, temperature stepping, terminal\n  current readout).\
+    \ A starting point, not a prescription.\n- `methods/main/solver.py` \u2014 the inherited starting\
+    \ method: a log-space\n  window-trend fit extrapolated in temperature with the voltage law\n  clamped\
+    \ at the window edge. It carries a real trend signal but is far\n  from what the records support;\
+    \ its level is also the floor you must\n  clearly beat before the evaluation awards any credit.\n\
+    - `python3 selfcheck.py` \u2014 free and unlimited: scores your current\n  `methods/main/solver.py`\
+    \ on the practice fleet against its truth and\n  prints per-device errors and the mean.\n  **The practice\
+    \ mean is not a point estimate of your qualification\n  score.** The 24-device practice fleet separates\
+    \ a broken method from a\n  working one cleanly, but it is systematically *optimistic* about the\n\
+    \  qualification lot: for a strong method we have measured, the practice mean\n  understates the qualification\
+    \ error by roughly a factor of **1.75**. That\n  gap is not sampling noise and a better method does\
+    \ not make it go away \u2014\n  the two fleets are different draws and the qualification lot leans\
+    \ toward\n  the harder corner of the population, so part of the gap is priced in by\n  construction.\
+    \ Use the practice mean for what it is good at: a floor check,\n  a debugging tool, a regression guard,\
+    \ and *relative* comparisons between\n  two of your own variants measured on the same 24 devices,\
+    \ where the\n  fleet-specific offset largely cancels. Do not read an absolute practice\n  number as\
+    \ the score you will get, and do not let a few percent of practice\n  advantage outweigh physics you\
+    \ can justify.\n\n## What You Submit\n\nLeave your best `methods/main/solver.py` (plus any helper\
+    \ files it needs\ninside `methods/main/`) in place. There is no submit step and no feedback\nfrom\
+    \ the graded lot: whatever sits in `methods/main/` at the end is what\nthe evaluation re-runs.\n\n\
+    ## How It Is Judged\n\nThe evaluation re-runs your `predict()` once per qualification device, on\n\
+    records byte-identical to `data/qualification/records.json`, and compares\nyour numbers to the sealed\
+    \ truth of that lot. Per device it computes the\nmean of `|log10 I_pred \u2212 log10 I_true|` over\
+    \ the device's extreme grid\n(LOWER is better; capped at 6.0, which is also the score for an invalid\
+    \ or\nover-budget run) \u2014 `selfcheck.py` computes the identical per-device error\non practice.\
+    \ Device errors are averaged within each qualification\ncondition (the main lot draw and the harder-corner\
+    \ draw from the same\npopulation), then across the two conditions. Your reward rises monotonically\n\
+    as that sealed mean error falls; at or above the shipped starting method's\nerror it is zero.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 11700
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/device_iv_regime_extrapolation/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

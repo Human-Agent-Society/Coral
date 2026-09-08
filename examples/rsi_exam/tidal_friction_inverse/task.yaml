@@ -1,0 +1,64 @@
+task:
+  name: rsi-exam-tidal_friction_inverse
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Sparse-Gauge Tidal Friction\
+    \ Field Inversion\n\nDesign a calibration method for the spatially varying seabed friction field of\
+    \ a tidal basin, starting from a deliberately weak homogeneous-friction solver. Minimize complex tidal-elevation\
+    \ RMSE at unobserved gauges; your submitted method is re-run on sealed basins and sealed gauges for\
+    \ scoring.\n\n## Hard Constraints\n\n- Modify only `/app/methods/main/solver.py` as the final submission.\n\
+    - Keep the public function `estimate_logf(case)` and return one finite `numpy` array with shape `(24,\
+    \ 24)`.\n- Use only information in `case`; do not read validation heads inside the solver.\n- The\
+    \ returned log-friction field must stay in `[-3.0, 1.0]`.\n- A solver call must finish within 60 seconds\
+    \ on two CPU cores and use no network.\n\n## What You Have\n\n- `/app/problem.py`: the frequency-domain\
+    \ shallow-water tidal simulator (`solve_field` / `simulate`) and case schema.\n- `/app/data/visible_cases.npz`:\
+    \ six calibration cases, each with known bathymetry, the forced open-boundary tide, sparse observed-gauge\
+    \ complex elevations, and separate validation gauges.\n- `/app/methods/main/solver.py`: a homogeneous\
+    \ weak baseline.\n- `/app/selfcheck.py`: runs the solver on all visible cases and reports validation-gauge\
+    \ elevation RMSE only.\n\nThe inverse problem is deliberately ill-posed: friction is a spatial field,\
+    \ the elliptic tidal response smooths away its fine structure, and gauges are sparse, so many friction\
+    \ fields fit the observed gauges while disagreeing elsewhere. Additionally, **a fraction of the observed\
+    \ gauges are faulty** \u2014 they carry gross, non-Gaussian errors unrelated to the true tide \u2014\
+    \ and which gauges are faulty is not disclosed. The separate validation gauges are clean.\n\n## What\
+    \ You Submit\n\nSubmit `/app/methods/main/solver.py`. It should infer a full log-friction field from\
+    \ each case's bathymetry, boundary forcing, observed gauge locations, and observed complex elevations.\
+    \ You may implement optimization, basis design, regularization, adjoint/gradient methods, ensembling,\
+    \ or other numerical methods inside that file.\n\n## How It Is Judged\n\nThe verifier imports your\
+    \ solver in a restricted child process, gives it new anonymized cases without validation heads, and\
+    \ uses the trusted simulator to compute complex tidal-elevation RMSE at sealed gauges. Lower RMSE\
+    \ is better; the score increases monotonically after clearing the disclosed weak-baseline gate of\
+    \ `0.14`, and beating the reference solver is the goal.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 3900
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/tidal_friction_inverse/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

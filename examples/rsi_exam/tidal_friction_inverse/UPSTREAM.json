@@ -1,0 +1,23 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "tidal_friction_inverse",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/tidal_friction_inverse",
+  "sha256": {
+    "environment/DATA_CARD.md": "ff1936418bae61bb6106912ae9b97346935b899ab232a8f9f087319d8ebfa5b0",
+    "environment/Dockerfile": "a5cbb08493fa859b8956f78c3c767257d8c545cb1516f2810d0be97555e01b66",
+    "environment/methods/main/solver.py": "b9eaf1ce4b6af957d476537bee0a0c4a764537c36ee483a9a1a5f52ff942a82b",
+    "environment/prepare_data.py": "5d9450e11fbd7e100857f7e923fc3b3ffdaaeebf6f90a1512fab0d46130d9931",
+    "environment/problem.py": "38e9334e77f5d8ca15d335d5686bf9f5a3215d0221b2a18b960baa5ca80d0d91",
+    "environment/selfcheck.py": "bc3468eca247679de7b37ea8333dd05ddaa822c5eca5fc4842b5c1a0989fa871",
+    "instruction.md": "b9c955316b30951a187ce869df65aff8ba35dfc80a8d080fded9d3dcd15db6c8",
+    "task.toml": "174e1df481d83ebb7d762df15bc7067f34c9fff6a51677d0fc5ce1e99ed0ccff",
+    "tests/Dockerfile": "111b1a59ae69d90fd1ad2d73870937ad482d79eee7c57a7c18f428f85ebe3419",
+    "tests/anchors.json": "f789cba1dcd897fbfd6bb14db2b48e118a6fbf20f274d2de9f717f3115403657",
+    "tests/grade.py": "48b1d209cda544474d193be4a2b5ab2d58bb86d153dbce14204c39f655911f29",
+    "tests/prepare_heldout.py": "15b7b9703f65b87b9039472f88cde56f1fb4506f55c6eeda9ebbc446c7812a65",
+    "tests/problem.py": "38e9334e77f5d8ca15d335d5686bf9f5a3215d0221b2a18b960baa5ca80d0d91",
+    "tests/test.sh": "ffe64d0750af66ecb2e38453273a76370b069fa05cd23b30f0932e92b42b8a34"
+  },
+  "downloads": []
+}

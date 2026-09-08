@@ -1,0 +1,16 @@
+Dockerfile
+Dockerfile.dockerignore
+README.md
+data/*.h5ad
+data/*.pkl
+data/README.md
+methods/
+selfcheck.py
+score_visible.py
+visible_client.py
+bwrap_guard.c
+bwrap_guard_selfcheck.sh
+requirements.txt
+docker-compose*.yaml
+**/__pycache__/
+**/*.pyc

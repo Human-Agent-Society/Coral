@@ -1,0 +1,47 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "eda_gate_sizing",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/eda_gate_sizing",
+  "sha256": {
+    "environment/Dockerfile": "928db99c37812a220c65047d5bc99087ebb4103209d71503ffd4dbdccc747428",
+    "environment/eval/OpenROAD_helper.py": "365156f47901541e9e683509295e9d3fa10e4fdd3bf23b6bf7d94f6197172a7e",
+    "environment/eval/check_validity.py": "a6bfe43561c6b0e1abd9d2401351f55154ace5998a5559f1f5322624454fbf91",
+    "environment/eval/evaluate_case.py": "8994719d6ff0de1e95d482d0ee2b9c79c93ef45b2d9bcfc37084d6a1cc6d3228",
+    "environment/eval/evaluation.py": "0e59a0f8291c44ac0209b6654309941496ebb2cb36118dd2e2f0ca9618256b6e",
+    "environment/methods/main/solver.py": "7a91f370106a5e7a9083ca12fffb97519248fd838f536a78822a1427063656b3",
+    "environment/prepare_data.py": "b4896fb3cbce86448b51d980aef4fdccc5e4a61cd7fd747df76b5ca127768e85",
+    "environment/selfcheck.py": "b52dc571e56fe4f99ea71fc02fb83afa980ecf7f64c57cc6995dfe2ccd828238",
+    "environment/tools/legality.py": "c1a9a712835cb69b669c4aad5aef528d6bb7d38601a62940e969e8cd3c558b90",
+    "instruction.md": "fa61d7070e5e5fe319830c0dc5213c470938ebff7012c4610d70c3e9b06b829e",
+    "task.toml": "d0582328072139982de3b021b7b66ba8e7608494aca3a392fd5266ee3d49e16c",
+    "tests/Dockerfile": "35c85562d949367ce1826dae125cdbb168a1076568981d2d8bc30a40f2abdc52",
+    "tests/child_solve.py": "c5d1365fe2eea6893116345d5a7ba8f1e4a1ff608996d93a56e51ee210e0bc63",
+    "tests/eval/OpenROAD_helper.py": "365156f47901541e9e683509295e9d3fa10e4fdd3bf23b6bf7d94f6197172a7e",
+    "tests/eval/check_validity.py": "a6bfe43561c6b0e1abd9d2401351f55154ace5998a5559f1f5322624454fbf91",
+    "tests/eval/evaluate_case.py": "8994719d6ff0de1e95d482d0ee2b9c79c93ef45b2d9bcfc37084d6a1cc6d3228",
+    "tests/eval/evaluation.py": "0e59a0f8291c44ac0209b6654309941496ebb2cb36118dd2e2f0ca9618256b6e",
+    "tests/grade.py": "e4f1cb5cf8827040829e9fe7b24d57e85f0133d6f1819ef6bd7cf82bb8a97332",
+    "tests/prepare_data.py": "b4896fb3cbce86448b51d980aef4fdccc5e4a61cd7fd747df76b5ca127768e85",
+    "tests/score.py": "8a7e051a96f6657e5b5493defd4e576820ff7e78bfd76fa2c44f4d568e6a0cc2",
+    "tests/test.sh": "d2f33c2a8ebba9aed4906fcab421d6127934e092dfdab1e3729abc83a1df8379",
+    "tests/tools/legality.py": "c1a9a712835cb69b669c4aad5aef528d6bb7d38601a62940e969e8cd3c558b90"
+  },
+  "downloads": [
+    {
+      "path": "environment/eval/OpenROAD_helper.tcl",
+      "size": 1912,
+      "git_blob_sha1": "0e9403de8d87eaa151bb4cc1d4d6c4fe548792af"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 2489,
+      "git_blob_sha1": "c8bef474bd72dc941d207b96ff06f10dd5b0c31a"
+    },
+    {
+      "path": "tests/eval/OpenROAD_helper.tcl",
+      "size": 1912,
+      "git_blob_sha1": "0e9403de8d87eaa151bb4cc1d4d6c4fe548792af"
+    }
+  ]
+}

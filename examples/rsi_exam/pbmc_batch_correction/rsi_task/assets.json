@@ -1,0 +1,12 @@
+[
+  {
+    "path": "tests/anchors.json",
+    "size": 47,
+    "git_blob_sha1": "3407cec64ac123cf5b959af7c0ea1814aa678b91"
+  },
+  {
+    "path": "tests/heldout/MANIFEST.json",
+    "size": 1905,
+    "git_blob_sha1": "97f7c59976f4ad2110fd628a48759d1eeaa894f8"
+  }
+]

@@ -1,0 +1,4 @@
+/rsi_task/environment/eval/OpenROAD_helper.tcl
+/seed/harbor/environment/eval/OpenROAD_helper.tcl
+/rsi_task/tests/anchors.json
+/rsi_task/tests/eval/OpenROAD_helper.tcl

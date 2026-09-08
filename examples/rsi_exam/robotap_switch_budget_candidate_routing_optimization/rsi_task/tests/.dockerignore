@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+grade_debug.json
+measured.json
+docker-compose.yaml

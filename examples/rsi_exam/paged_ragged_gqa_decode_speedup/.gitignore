@@ -1,0 +1,11 @@
+/rsi_task/environment/problems/visible_spec.json
+/seed/harbor/environment/problems/visible_spec.json
+/rsi_task/tests/anchor_inputs.json
+/rsi_task/tests/anchors.json
+/rsi_task/tests/calibration/split_manifest.json
+/rsi_task/tests/calibration/test_spec.json
+/rsi_task/tests/heldout/anchors.json
+/rsi_task/tests/heldout/benchmark_context.json
+/rsi_task/tests/heldout/split_manifest.json
+/rsi_task/tests/heldout/test_spec.json
+/rsi_task/tests/visible_spec.json

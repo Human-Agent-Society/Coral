@@ -1,0 +1,43 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name = "autoresearch-arena/discoveryworld_agent_harness_low2"
+description = "Improve a ReAct harness over a fixed language model on low-baseline Space Sick and Chemistry Challenge tasks."
+authors = [{ name = "Haoting Zhang" }, { name = "Yiyang Zhou" }]
+
+[agent]
+timeout_sec   = 43200.0
+network_mode  = "allowlist"
+allowed_hosts = ["api.openai.com", "*.services.ai.azure.com"]
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "public"
+cpus = 4
+memory_mb = 12288
+storage_mb = 16384
+gpus = 0
+
+[environment.env]
+DISCOVERYWORLD_LLM_API_KEY  = "${DISCOVERYWORLD_LLM_API_KEY}"
+DISCOVERYWORLD_LLM_API_BASE = "${DISCOVERYWORLD_LLM_API_BASE:-https://api.openai.com/v1}"
+DISCOVERYWORLD_LLM_MODEL    = "${DISCOVERYWORLD_LLM_MODEL:-gpt-4o}"
+DISCOVERYWORLD_EVAL_WORKERS = "3"
+
+[verifier]
+timeout_sec = 10800.0
+environment_mode = "separate"
+network_mode  = "allowlist"
+allowed_hosts = ["api.openai.com", "*.services.ai.azure.com"]
+
+[verifier.env]
+DISCOVERYWORLD_LLM_API_KEY  = "${DISCOVERYWORLD_LLM_API_KEY}"
+DISCOVERYWORLD_LLM_API_BASE = "${DISCOVERYWORLD_LLM_API_BASE:-https://api.openai.com/v1}"
+DISCOVERYWORLD_LLM_MODEL    = "${DISCOVERYWORLD_LLM_MODEL:-gpt-4o}"
+DISCOVERYWORLD_EVAL_WORKERS = "3"
+MAX_STEPS = "240"
+
+[scoring]
+metric = "mean_paper_style_scientific_discovery"
+direction = "higher"

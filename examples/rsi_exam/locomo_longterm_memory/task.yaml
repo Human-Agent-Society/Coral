@@ -1,0 +1,74 @@
+task:
+  name: rsi-exam-locomo_longterm_memory
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Redesign a conversational\
+    \ memory system that generalizes to unseen conversations\n\nYou inherit a minimal long-term-memory\
+    \ system for LLM agents: it\nextracts atomic memory entries from multi-session conversations with\
+    \ an LLM,\nindexes them with BM25 only (k=5, 8-entry context), and answers questions with\none concise\
+    \ LLM call. Your goal is to redesign this memory architecture \u2014\nextraction, storage, retrieval,\
+    \ and answering are all yours to change \u2014 using\nthe visible conversations for development. Your\
+    \ submission is re-run by a\nsealed verifier on unseen conversations of the same kind and scored by\n\
+    token-level F1, so improvements must generalize beyond the conversations you\ncan see.\n\n## Hard\
+    \ Constraints\n\n- Keep the grading contract of `/app/methods/main/memory_system.py` intact:\n  `build_memory_system(llm_call)`\
+    \ returning an object with\n  `.ingest(sessions)` and `.answer(question, question_time=\"\")`.\n \
+    \ The docstring in that file is the authoritative contract.\n- Everything you submit must live under\
+    \ `/app/methods/` \u2014 only that directory\n  is collected for grading.\n- All LLM access must go\
+    \ through the `llm_call` the harness passes in. At\n  grade time it is routed through a proxy that\
+    \ pins the base model\n  (gpt-4o-mini); requests for any other model are rewritten to it, and your\n\
+    \  code never receives a real API key.\n- Only preinstalled packages are available at grade time (openai,\
+    \ rank_bm25,\n  numpy, sentence-transformers with locally cached `BAAI/bge-base-en-v1.5` and\n  `all-MiniLM-L6-v2`,\
+    \ scikit-learn, pandas, networkx, pyyaml). The verifier\n  cannot install packages for your code.\n\
+    - Answers must be derived from the ingested sessions via your memory system \u2014\n  no hardcoded\
+    \ question-answer mappings.\n- `.answer()` must return a string; a question whose call raises scores\
+    \ 0 \u2014\n  prefer a best-effort answer over an exception.\n- `.ingest()` may be called with several\
+    \ independent conversations merged into\n  one batch (namespaced session ids); do not assume a single\
+    \ continuous\n  conversation.\n\n## What You Have\n\n- `/app/methods/main/`: the inherited baseline\
+    \ (extraction -> BM25 index ->\n  concise answer). **This is what gets graded**; improve it in place\
+    \ or\n  rewrite it.\n- `/app/data/conversations_visible.json`: the visible dev set \u2014 4\n  multi-session\
+    \ conversations (19-31 sessions each), 812 free-text QA pairs\n  in 5 categories (single-hop, temporal,\
+    \ multi-hop/inferential, open-domain,\n  adversarial).\n- `/app/selfcheck.py`: free local scoring\
+    \ on the visible set (token F1), with\n  per-category breakdown, conversation/QA subsetting for cheap\
+    \ runs, and an\n  extraction cache flag. A full cold visible run with the baseline takes\n  ~70 min\
+    \ (extraction dominates); cached re-runs ~13 min.\n- `MEMORY_LLM_API_KEY` / `MEMORY_LLM_API_BASE`\
+    \ / `MEMORY_LLM_MODEL` in your\n  environment for development runs (selfcheck.py reads them).\n\n\
+    ## What You Submit\n\nLeave your best memory system under `/app/methods/` with the entry point\n`/app/methods/main/memory_system.py`\
+    \ honoring the contract. There is no\nsubmit step; it is graded once at the end.\n\n## How It Is Judged\n\
+    \nThe sealed verifier ingests unseen conversations of the same kind\ninto one instance of your system,\
+    \ asks every question, and scores\ntoken-level F1 against concise gold answers. Higher mean F1 is\
+    \ better.\nGrading re-runs your full pipeline (ingest + answer) within a fixed\nwall-clock budget\
+    \ \u2014 the inherited baseline uses about half of it, and a run\nthat exceeds it scores 0.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 18900
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/locomo_longterm_memory/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

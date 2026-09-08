@@ -1,0 +1,74 @@
+task:
+  name: rsi-exam-pbmc_batch_correction
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Batch-integrated cell\
+    \ embedding from scATAC-seq peaks (PBMC)\n\nSingle-cell data is collected in separate batches (samples,\
+    \ labs, runs), and technical batch\neffects can dominate and obscure real biology. You inherit a no-correction\
+    \ **PCA** embedding (which\nkeeps batch variation) and must produce a low-dimensional embedding that\
+    \ **removes batch variation\nwhile preserving cell-type structure**, using only each cell's binary\
+    \ peak set and its batch label.\nThe embedding is re-computed by a sealed verifier on a hidden split\
+    \ and scored by how well cell\ntypes stay clustered, so only a method that genuinely *integrates*\
+    \ across batches counts.\n\n## Hard Constraints\n\n- Submit an **algorithm** (`embed`), not a precomputed\
+    \ embedding \u2014 the verifier re-runs your code on\n  hidden cells.\n- Keep the exact signature\n\
+    \  `embed(atac, batch_labels, peak_names) -> np.ndarray (n_cells, d)`.\n- Input peaks are **binary**;\
+    \ you also receive each cell's integer `batch` id. You do **not** receive\n  cell-type labels \u2014\
+    \ the embedding must be unsupervised w.r.t. cell type (the judge uses cell types\n  only for scoring).\n\
+    - Output a real-valued embedding with a modest `d` in **[2, 512]** (e.g. 10\u2013128); finite values,\
+    \ one\n  row per input cell, or the submission scores 0.\n- There is no network at grade time. Do\
+    \ not hardcode or look up answers.\n\n## What You Have\n\n- The workspace `/app/`:\n  - Visible data\
+    \ (`/app/data/`): `pbmc_atlas_atac.h5ad` \u2014 binary peak-cell matrix\n    (`var_names=\"chr-start-end\"\
+    `) with `obs['batch']` and (for local scoring only) `obs['annot']`.\n  - The editable baseline `/app/methods/main/`\
+    \ \u2014 **this directory is what gets graded**: the\n    no-correction PCA embedding. Improve it\
+    \ in place or\n    rewrite it entirely.\n- **Your self-check surface** (free): `python /app/selfcheck.py`\
+    \ runs your embedding on the visible\n  cells and reports cell-type NMI (best-over-resolution Leiden,\
+    \ or a KMeans fallback). This is a\n  **proxy** \u2014 the sealed split differs, so a good self-check\
+    \ is necessary, not sufficient.\n\n## What You Submit\n\nEdit `/app/methods/main/solver.py` to expose:\n\
+    \n```python\ndef embed(atac, batch_labels, peak_names):\n    # atac         : scipy.sparse CSR (n_cells,\
+    \ n_peaks), binary {0,1}\n    # batch_labels : np.ndarray (n_cells,) integer batch ids\n    # peak_names\
+    \   : list[str] length n_peaks, \"chr-start-end\"\n    # returns      : np.ndarray float (n_cells,\
+    \ d) cell embedding, d in [2, 512]\n```\n\nYou may add helper modules next to `solver.py`. The runtime\
+    \ provides `numpy / scipy /\nscikit-learn / torch` (and `anndata` / `scanpy` for the self-check).\
+    \ **There is no submit step and\nno per-attempt feedback** \u2014 self-check for as long as your run\
+    \ window allows, then leave your best\n`solver.py` in place; it is graded once at the end on the hidden\
+    \ cells.\n\n## How It Is Judged\n\nAfter your run, the verifier runs your `embed` on the hidden split\
+    \ (your code runs in an isolated\nsubprocess that receives only the peaks + batch ids, never the cell\
+    \ types). It clusters the\nembedding with Leiden at a grid of resolutions and scores the best **normalized\
+    \ mutual information\n(NMI)** between the clustering and the hidden cell-type labels:\n\n```\nmetric\
+    \ = max over resolutions of  NMI(Leiden(embedding, res), cell_types)\n```\n\nThe metric is **cell-type\
+    \ NMI (higher is better)**. A no-correction embedding keeps batch\nvariation; strong methods mix batches\
+    \ while keeping cell types separable.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 14100
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/pbmc_batch_correction/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

@@ -1,0 +1,38 @@
+schema_version = "1.4"
+artifacts = ["/app/methods"]
+
+[task]
+name = "autoresearch-arena/paged_ragged_gqa_decode_speedup"
+description = "Optimize FP16/BF16 grouped-query decode attention over a paged, ragged KV cache on NVIDIA H100."
+authors = [{ name = "riken" }]
+
+[agent]
+network_mode = "no-network"
+timeout_sec = 43200.0
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "public"
+workdir = "/app"
+cpus = 8
+memory_mb = 65536
+storage_mb = 20480
+
+[environment.env]
+
+[verifier]
+timeout_sec = 3600.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+build_timeout_sec = 1800.0
+cpus = 8
+memory_mb = 65536
+storage_mb = 20480
+
+[solution.env]
+
+[scoring]
+metric = "raw_speedup"
+direction = "higher"

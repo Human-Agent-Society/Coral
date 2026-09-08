@@ -1,0 +1,137 @@
+[
+  {
+    "path": "environment/public/observations/manifest.json",
+    "size": 743,
+    "git_blob_sha1": "367a7f3cea62b5badc3251cdcb940f9bbd44e500"
+  },
+  {
+    "path": "environment/public/observations/visible_case_001.json",
+    "size": 132755,
+    "git_blob_sha1": "497ce2e5b60823e737dc46d267ea1c0db3fa4bcf"
+  },
+  {
+    "path": "environment/public/observations/visible_case_002.json",
+    "size": 127375,
+    "git_blob_sha1": "cbee349be40afdae4448d74313d7290d44bdfdcb"
+  },
+  {
+    "path": "environment/public/observations/visible_case_003.json",
+    "size": 119568,
+    "git_blob_sha1": "2a3d9a62a894bade5c6d269d5c6ef143452eed4d"
+  },
+  {
+    "path": "environment/public/observations/visible_case_004.json",
+    "size": 128629,
+    "git_blob_sha1": "7c3cab09e66916f3b3ee37b77a405a64f0cd8a6c"
+  },
+  {
+    "path": "environment/public/observations/visible_case_005.json",
+    "size": 121923,
+    "git_blob_sha1": "3a27c125a710107aefc526a69f726f91fd918c15"
+  },
+  {
+    "path": "environment/public/observations/visible_case_006.json",
+    "size": 119043,
+    "git_blob_sha1": "b0af6c6613dd712da990b500b2fc6df5a4c1b720"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 5559,
+    "git_blob_sha1": "01fcc9b62c2aa79338135e2b7fc125d9559c1ff8"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_001_gt.json",
+    "size": 20438,
+    "git_blob_sha1": "fda1bda0dfd4445ce882fb9c4f9dd57ba4967448"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_002_gt.json",
+    "size": 20633,
+    "git_blob_sha1": "b826dfabbf26f1f1fd32aa9865deaf68e5900523"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_003_gt.json",
+    "size": 20592,
+    "git_blob_sha1": "64d15a1a46da54b35ce2a8adfc2422663d3c4647"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_004_gt.json",
+    "size": 20567,
+    "git_blob_sha1": "f9514ffcb5ed2d5b9fe6dcd8bef587f995b48a24"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_005_gt.json",
+    "size": 20556,
+    "git_blob_sha1": "9cd2e23b865cf280aa79e9a6f08ffefec23d140a"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_006_gt.json",
+    "size": 20486,
+    "git_blob_sha1": "95fe197b93bf56e7576a8de453ab7a7f1a81eb2d"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_007_gt.json",
+    "size": 20483,
+    "git_blob_sha1": "3a5a0e369c1e5034241a1bdfb6ed19f2db35f285"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_008_gt.json",
+    "size": 20554,
+    "git_blob_sha1": "fbcc9b655ae7ede9cca0961a62a55fb3c0108cf6"
+  },
+  {
+    "path": "tests/heldout/gt/sealed_case_009_gt.json",
+    "size": 20510,
+    "git_blob_sha1": "00a03c448b0e5f6b98f14ab6fe0644310295c58a"
+  },
+  {
+    "path": "tests/heldout/observations/manifest.json",
+    "size": 1055,
+    "git_blob_sha1": "66be88e951b20b8bc2e890dd63428bfd79c9b1d1"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_001.json",
+    "size": 129017,
+    "git_blob_sha1": "bb9d89923bbbeabdc75694b0ac64fe68a5562fa8"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_002.json",
+    "size": 125794,
+    "git_blob_sha1": "a6e23ff02d5f534d267e6db4ceb618f40ea2bb0f"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_003.json",
+    "size": 121225,
+    "git_blob_sha1": "8c0a3e903b2e94fcc55758da5b3b63b547c41072"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_004.json",
+    "size": 132654,
+    "git_blob_sha1": "d5f4be8c379589613852d3e470ed041c8d85a670"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_005.json",
+    "size": 130237,
+    "git_blob_sha1": "ce1e4b2ddcd5eb457eee01e81a3c8a66041ad85f"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_006.json",
+    "size": 124384,
+    "git_blob_sha1": "ab085356e2258283c1a77cc6ce5221b9f3046ce6"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_007.json",
+    "size": 124820,
+    "git_blob_sha1": "c498b4d765ff639dfd49103b8e7f8864587bad73"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_008.json",
+    "size": 120092,
+    "git_blob_sha1": "70ec3cb6fd8f32860e141de660e9773e37011e04"
+  },
+  {
+    "path": "tests/heldout/observations/sealed_case_009.json",
+    "size": 121051,
+    "git_blob_sha1": "8aee6e197e13183797d2fd42f8d1043785a65f32"
+  }
+]

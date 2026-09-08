@@ -1,0 +1,87 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "mbff_banking_placement",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/mbff_banking_placement",
+  "sha256": {
+    "environment/.dockerignore": "a33a42a66098880c57732a138f44e825c9cc286894350ec755707400379d39fb",
+    "environment/Dockerfile": "05d2a8e7230d409689c408a213cc1882e56c4c5f48c136bf12ed31920ac335ca",
+    "environment/methods/main/solver.py": "2294d63af801eb859e0f41f5469b76d342f243ec6b2fd41b5a5114f6b5c0ef4e",
+    "environment/selfcheck.py": "32f8ddfa68bb4ad442d82843fbb4c448a9e5bf5d72e9daf9c5b961150aef9187",
+    "environment/tools/placement_checker.cpp": "1671a609f62a6841b5613fbf15b2cec1673dcb75dc889999a86f4b407b8f2ac8",
+    "instruction.md": "5fc2e59547011ccedb59e598e558af39f1c313838f95c5a031c8a760be6a46a6",
+    "task.toml": "8da2f420c805c72a76162d8762266c836c89bb3de5ead2862da84da2234ad658",
+    "tests/.dockerignore": "a33a42a66098880c57732a138f44e825c9cc286894350ec755707400379d39fb",
+    "tests/Dockerfile": "e7c8e2be481ac3fb565ec839df29e94cbd671a45e1d80c3f810a1dba3f48ed1d",
+    "tests/child_solve.py": "e21a4e5fce6f0e17d15b13c4548b1128924c4520be1f83c73081317ae33120b7",
+    "tests/grade.py": "5c57528be6fc356ba2e8f3c6c8bfe8760323c890d4fbd91cd93b65dd45808712",
+    "tests/test.sh": "141e4744df7c9abbe0997c08fed01a2d39579414ecb9fb07782a17cf0ba875be"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/sampleCase",
+      "size": 1064,
+      "git_blob_sha1": "3fb14df3325587e8fe5719617e86b4072431a38e"
+    },
+    {
+      "path": "environment/data/testcase1_0812.txt",
+      "size": 11431271,
+      "sha256": "17ce8857dc6f28f9e946ba89f2565501739d64f1452f3aa26409dc0a60f81cc2"
+    },
+    {
+      "path": "environment/data/testcase2_0812.txt",
+      "size": 16685546,
+      "sha256": "46a2df50c8ddf7301142b1bdd2d243d6216e7fdfc2907ed2a7dccc2f9827902f"
+    },
+    {
+      "path": "environment/tools/placement_checker",
+      "size": 141512,
+      "sha256": "d132d8f5eea86b6cdc738121c76325e303d23087c6de67a00e1c505ee435cf5b"
+    },
+    {
+      "path": "environment/tools/preliminary-evaluator",
+      "size": 22776056,
+      "sha256": "70e5d5a73a4ec1d7e9c9af2f0e010cc9e6e127b182c78dcf1f0d888c04bb699f"
+    },
+    {
+      "path": "environment/tools/sanity",
+      "size": 12023648,
+      "sha256": "a0730573c35d41da5c4345353be9a4859cb9edb5e41215a8e50eb9254fcea0ad"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 1029,
+      "git_blob_sha1": "fe7ef0c142cd187093e2dc57f1e22a3f46a30808"
+    },
+    {
+      "path": "tests/heldout/hiddencase01.txt",
+      "size": 11431277,
+      "sha256": "878f8658c7cdb0d6e3a7706ae3f44107a9532146c2a88053e1e411f962c1c8f8"
+    },
+    {
+      "path": "tests/heldout/hiddencase02.txt",
+      "size": 16685547,
+      "sha256": "9282c5a5a1a714306012263a1d81dc33994069ff33183cbadf7266c9276e24aa"
+    },
+    {
+      "path": "tests/heldout/hiddencase03.txt",
+      "size": 16685544,
+      "sha256": "adc3756e0d0d4004a6b718d56889dae04ee87e1001c4bb64cda9626ca03302e2"
+    },
+    {
+      "path": "tests/tools/placement_checker",
+      "size": 141512,
+      "sha256": "d132d8f5eea86b6cdc738121c76325e303d23087c6de67a00e1c505ee435cf5b"
+    },
+    {
+      "path": "tests/tools/preliminary-evaluator",
+      "size": 22776056,
+      "sha256": "70e5d5a73a4ec1d7e9c9af2f0e010cc9e6e127b182c78dcf1f0d888c04bb699f"
+    },
+    {
+      "path": "tests/tools/sanity",
+      "size": 12023648,
+      "sha256": "a0730573c35d41da5c4345353be9a4859cb9edb5e41215a8e50eb9254fcea0ad"
+    }
+  ]
+}

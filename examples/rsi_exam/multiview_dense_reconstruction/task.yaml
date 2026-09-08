@@ -1,0 +1,73 @@
+task:
+  name: rsi-exam-multiview_dense_reconstruction
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Multi-view point-cloud\
+    \ reconstruction post-processing\n\nImprove a Python post-processor that combines noisy three-dimensional\
+    \ observations from several views into one clean scene cloud. The objective is low geometric error\
+    \ on unseen cases while retaining broad surface coverage and fine detail.\n\n## Hard Constraints\n\
+    \n- Edit only `/app/methods/main/solver.py`, keeping `predict(export_dir)` as the entry point.\n-\
+    \ Use the Python standard library and NumPy already installed in the image. Do not access the network,\
+    \ launch external programs, read files outside the supplied observation directory, or read verifier-owned\
+    \ files.\n- Read every case from the supplied manifest. Case identifiers, case counts, view identifiers,\
+    \ view counts, and point counts all differ between the visible and sealed packages; nothing about\
+    \ them may be assumed or hard-coded.\n- Return exactly one cloud per manifest case: 4 to 2,048 finite\
+    \ three-dimensional points, at least four of them distinct. Missing keys, extra keys, empty clouds,\
+    \ malformed points, and non-finite values are rejected outright and score nothing. Exact duplicate\
+    \ points are collapsed before scoring, so padding a cloud with copies of a good point neither helps\
+    \ nor hurts.\n- `predict` must be deterministic for identical input and must not modify any input\
+    \ file.\n- Private reference geometry is not present when `predict` runs.\n\n## What You Have\n\n\
+    - `/app/public/observations/` \u2014 the visible package: a manifest and the case files it references,\
+    \ in the same schema as the sealed one. Each view carries `points` and a same-length `confidence`\
+    \ in `[0, 1]`.\n  **The views of a case are not in a common coordinate system.** The first view listed\
+    \ for a case is the reference view; its points are already in the scene frame. Every other view is\
+    \ expressed in its own frame, related to the scene frame by an unknown rigid transform \u2014 a small\
+    \ rotation and a small translation, no scale and no reflection. Recovering those transforms is part\
+    \ of the problem.\n- `/app/methods/main/solver.py` \u2014 the editable starter.\n- `/app/selfcheck.py`\
+    \ \u2014 checks the submission contract only: structure, coverage, finiteness, determinism, input\
+    \ immutability, standard-library-only imports. **It contains no reference geometry, does not measure\
+    \ quality, and cannot predict sealed performance.**\n\n## What You Submit\n\nThe edited `/app/methods/main/solver.py`,\
+    \ exposing:\n\n```python\ndef predict(export_dir: str) -> dict:\n    ...\n```\n\nmapping each manifest\
+    \ `case_id` to its point cloud.\n\n## How It Is Judged\n\nThe sealed evaluator invokes `predict` on\
+    \ private cases with the same schema, first validating case coverage, cloud shape, point-count bounds,\
+    \ finiteness, distinct-point coverage, and input immutability.\n\nPrivate reference geometry is expressed\
+    \ in the scene frame \u2014 the frame of each case's reference view \u2014 so a returned cloud is\
+    \ compared in that frame and is not aligned to the truth before scoring.\n\nFor each valid case it\
+    \ computes symmetric precision/recall F-scores from nearest-neighbour distances at three fixed geometric\
+    \ tolerances (`0.0125`, `0.025`, `0.05`) and averages the three. Being symmetric, the score charges\
+    \ both for points that miss the surface and for surface that no point covers. The per-case scores\
+    \ are averaged and that single mean is calibrated once; higher is better.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 8520
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/multiview_dense_reconstruction/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

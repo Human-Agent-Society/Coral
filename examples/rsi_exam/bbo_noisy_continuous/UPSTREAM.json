@@ -1,0 +1,56 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "bbo_noisy_continuous",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/bbo_noisy_continuous",
+  "sha256": {
+    "environment/Dockerfile": "3993860d55c20b6a2a028bb72f556ebe15465954870c3d0c6608f9fdb36d5b57",
+    "environment/bbo_harness.py": "cee5a9e1b929f0fe68d6ae2e06b1b4c0f45493d0f92f136875a0b56c828123d6",
+    "environment/methods/main/solver.py": "e6d5f2e80575d5f1cf03188bd5c4545b4ea099a8327b85f25bf0118677055c00",
+    "environment/selfcheck.py": "df47ebe9c85533325f93aa5b3de447e1bb4d4bfe391a9d9fcd7b29c652179e6a",
+    "instruction.md": "f55e6e8dc06b9a3d60945bb6b3caa40dbc30af5cbfaf9b391191df251df49676",
+    "task.toml": "939ed6178a7f32ef8f79b23dd19fff7aa10c7f5684792c27d9fc21b205a83aa9",
+    "tests/Dockerfile": "d19a3e544f06f5186d859d345e5c2cd6bce3180676a5e5026cec7bae0cb135f8",
+    "tests/child_optimizer.py": "bfe6c8c68d409645ab6f0fe87e39cabd912a33edbb4f15b8b3765dfdf585d95a",
+    "tests/grade.py": "f63376719f843cfd94d009f0243d95f0b35cedeaedd3219d42f0b4f1d08c4dd1",
+    "tests/heldout/bbo_harness.py": "17f8c08e6d7484ff7b7bf9a85875fbe64da1301e65385f402cf66aee5bc8136e",
+    "tests/heldout/calibrate_anchors.py": "8e42f65e911064448638adf683d3b7d56d94a388961301d330af650f84e61681",
+    "tests/heldout/oracle_scoring.py": "f3977be9ee28cd162a87fd3f119e8cd23bee1653b4c1d84fae333d7016535925",
+    "tests/heldout/source_evaluate.py": "1ebfbe26385f29556ebc1c5a93d79bb3459912dd488ab09585aec8a06ca6e6db",
+    "tests/test.sh": "20f738a0085fe50c22a1a5cfc48a52cf06dc2d05a1f76594ae85065befd90d83",
+    "tests/test_reference.py": "5fa9d7e893e3ebb931efa6618dcdaa6df57ea8366ec70ce93943b1cba5ad7d90",
+    "tests/test_runner_boundary.py": "e86f4eddb54d5fb9098e234d73aa530cf4c125ee7e0cd96a9de8b03f2e89e621"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/visible.json",
+      "size": 164934,
+      "git_blob_sha1": "dd63cd2160797c1221a2308a9a6b9ca2709957d1"
+    },
+    {
+      "path": "tests/heldout/frozen_anchors.json",
+      "size": 61886,
+      "git_blob_sha1": "7e96431bb1cd3f3fdc76c6732a3f1807647e6286"
+    },
+    {
+      "path": "tests/heldout/hidden_data.json",
+      "size": 274944,
+      "git_blob_sha1": "47486da8b3e63dc5d56d13d21adb1c3a4a666fa5"
+    },
+    {
+      "path": "tests/heldout/oracle_provenance.json",
+      "size": 641,
+      "git_blob_sha1": "aff16149e7d3de85823e8ea7a32c1dc398ba5417"
+    },
+    {
+      "path": "tests/heldout/oracle_values.json",
+      "size": 684,
+      "git_blob_sha1": "13fe31ec9550eb1ea0817fdfa069b9c6490720d5"
+    },
+    {
+      "path": "tests/heldout/source_frozen_anchors.json",
+      "size": 95410,
+      "git_blob_sha1": "9787137afa036bfb1da68639809094c575cb5aa2"
+    }
+  ]
+}

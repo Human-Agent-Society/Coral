@@ -1,0 +1,62 @@
+[
+  {
+    "path": "environment/data/visible_cases.json",
+    "size": 130524,
+    "git_blob_sha1": "4ea1d175214c46a56e667c54b68e934f5a3c737d"
+  },
+  {
+    "path": "environment/tdd_runtime/CMakeLists.txt",
+    "size": 693,
+    "git_blob_sha1": "718f805f611b8a8603f6d4e3ad6e876868a97507"
+  },
+  {
+    "path": "environment/tdd_runtime/LICENSE.TDDLinux",
+    "size": 35149,
+    "git_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7"
+  },
+  {
+    "path": "environment/tdd_runtime/dd/CMakeLists.txt",
+    "size": 1115,
+    "git_blob_sha1": "53993fb047edd3a8ac6aeface8d219d5826584aa"
+  },
+  {
+    "path": "environment/tdd_runtime/operations/CMakeLists.txt",
+    "size": 754,
+    "git_blob_sha1": "a7ef58f5dc1411f9e9cabaa1ffcbf0b493386fe1"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 86,
+    "git_blob_sha1": "089f03d6f093ac53c93d629aeb7680afc3e6173b"
+  },
+  {
+    "path": "tests/heldout/MANIFEST.json",
+    "size": 365,
+    "git_blob_sha1": "c895354c11430ca2bce52761bcec1c8085a36992"
+  },
+  {
+    "path": "tests/heldout/cases.json",
+    "size": 177198,
+    "git_blob_sha1": "2f32e6b7e66753954f9ffc7a6cc705eb83265bb2"
+  },
+  {
+    "path": "tests/tdd_runtime/CMakeLists.txt",
+    "size": 693,
+    "git_blob_sha1": "718f805f611b8a8603f6d4e3ad6e876868a97507"
+  },
+  {
+    "path": "tests/tdd_runtime/LICENSE.TDDLinux",
+    "size": 35149,
+    "git_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7"
+  },
+  {
+    "path": "tests/tdd_runtime/dd/CMakeLists.txt",
+    "size": 1115,
+    "git_blob_sha1": "53993fb047edd3a8ac6aeface8d219d5826584aa"
+  },
+  {
+    "path": "tests/tdd_runtime/operations/CMakeLists.txt",
+    "size": 754,
+    "git_blob_sha1": "a7ef58f5dc1411f9e9cabaa1ffcbf0b493386fe1"
+  }
+]

@@ -1,0 +1,84 @@
+task:
+  name: rsi-exam-tddn_contraction_planning
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Plan the contraction\
+    \ order for exact decision-diagram circuit equivalence checking\n\nTwo quantum circuits are checked\
+    \ for exact equivalence by contracting a network of Tensor\nDecision Diagrams (TDDs) down to a single\
+    \ tensor and testing it against the identity. Every\ncontraction order reaches the same verdict, but\
+    \ the orders differ enormously in how large the\nintermediate diagrams grow and how long the whole\
+    \ check takes. Your job is the planner: at each\nstep, pick which pair to contract next.\n\n## Hard\
+    \ Constraints\n\n- Edit only files under `/app/methods/main/`. That directory is what gets graded.\n\
+    - Keep the exact contract: `select_edge(observation) -> int` returns one **enabled, stable**\n  `edge_id`.\
+    \ The exact TDD engine contracts that pair and hands you the next observation.\n- Return only an edge\
+    \ that `action_mask` marks as enabled. An invalid action forfeits the case.\n- Inference must be **deterministic**\
+    \ and independent of case IDs. Do not encode case IDs, fixed\n  edge sequences, tensor IDs, or per-case\
+    \ tables \u2014 the sealed circuits have different hashes and\n  sizes, and anything keyed on identity\
+    \ will simply miss.\n- Do not train a model and do not download artifacts. There is no network at\
+    \ run time; whatever\n  you use has to be already installed or written here.\n- Do not attempt to\
+    \ read verifier or held-out files.\n- Your planner gets **30 seconds of total decision time per circuit**,\
+    \ and no single\n  `select_edge` call may take more than 5 seconds. Thinking longer per step is fine\
+    \ within that\n  budget \u2014 the time you spend deciding is not part of your score.\n- Every circuit\
+    \ must finish and pass exact identity checking. Exceptions, invalid actions,\n  incomplete contractions,\
+    \ failed identity checks, native resource failures and budget overruns\n  all score zero for that\
+    \ case.\n\n## What You Have\n\n- `/app/methods/main/solver.py` \u2014 a crude planner that always\
+    \ takes the strongest shared bond.\n  It is yours to rewrite or replace entirely.\n- `python /app/selfcheck.py`\
+    \ \u2014 free and unlimited. It always evaluates all 12 frozen visible\n  cases (eight standard, four\
+    \ larger scalability cases) and reports the raw metrics. The visible\n  set is fixed so successive\
+    \ planner revisions stay comparable.\n- `/app/data/visible_cases.json` \u2014 those 12 cases.\n\n\
+    Each observation gives you:\n\n| key | contents |\n|---|---|\n| `nodes` | stable node IDs, current\
+    \ exact TDD sizes, rank, degree, and how many original gates each active tensor represents |\n| `edges`\
+    \ | stable `edge_id`, endpoints, shared-index count, bond dimension, normalized bond strength / local\
+    \ topology, endpoint sizes and degrees |\n| `action_mask` | which edge IDs are currently enabled |\n\
+    | `global_features` | active node/edge counts, step, qubits, latest size, peak size so far |\n\nTwo\
+    \ things that bite: **list positions are not stable IDs**, and the scores you computed last\nstep\
+    \ are stale \u2014 recompute after every contraction.\n\n## What You Submit\n\nLeave your best planner\
+    \ in `/app/methods/main/solver.py`, exposing exactly:\n\n```python\ndef select_edge(observation: dict)\
+    \ -> int:\n    \"\"\"Return one edge_id enabled by observation[\"action_mask\"].\"\"\"\n```\n\nThere\
+    \ is no submit step and no per-attempt feedback. Work and self-check for as long as your run\nwindow\
+    \ allows, then leave your best `solver.py` in place.\n\n## How It Is Judged\n\nThe grader replays\
+    \ every contraction on **12 sealed cases you never see** \u2014 four in-family\nstandard sizes, four\
+    \ zero-shot Bernstein\u2013Vazirani circuits, and four larger scalability cases,\nnone of them overlapping\
+    \ the visible set. All contractions use the same 23-bit TDD normalization\nprecision as your workbench.\n\
+    \nA submission must first be **correct**: every circuit finishes and passes exact identity\nchecking.\
+    \ Among correct planners, two numbers are measured per case and combined in log space:\n\n- **peak\
+    \ intermediate TDD node count** \u2014 75% of the weight;\n- **the time the native engine spends contracting**\
+    \ \u2014 25%. Your own decision time is not\n  counted here; it only has to stay inside the budget\
+    \ above.\n\nBoth are lower-is-better. The grader runs the trusted starter and a frozen reference planner\
+    \ on\nthe same hardware in the same pass, so the comparison is not affected by machine load. How the\n\
+    raw measurements map to the final reward is deliberately not disclosed \u2014 optimise the raw\nmeasurements\
+    \ themselves. The starter as shipped is the zero of that scale: submitted unchanged it\nscores 0.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 6300
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/tddn_contraction_planning/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

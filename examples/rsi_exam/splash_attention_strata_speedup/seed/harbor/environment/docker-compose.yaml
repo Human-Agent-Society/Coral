@@ -1,0 +1,25 @@
+services:
+  main:
+    devices:
+      - /dev/vfio/vfio
+      - /dev/vfio/0
+      - /dev/vfio/1
+      - /dev/vfio/2
+      - /dev/vfio/3
+      - /dev/vfio/4
+      - /dev/vfio/5
+      - /dev/vfio/6
+      - /dev/vfio/7
+    ulimits:
+      memlock: -1
+    volumes:
+      - /var/google/services/tpunetd:/var/google/services/tpunetd
+    environment:
+      TPU_SKIP_MDS_QUERY: "true"
+      TPU_ACCELERATOR_TYPE: v6e-8
+      TPU_CHIPS_PER_HOST_BOUNDS: 2,4,1
+      TPU_HOST_BOUNDS: 1,1,1
+      TPU_WORKER_ID: "0"
+      TPU_WORKER_HOSTNAMES: localhost
+      TPU_VISIBLE_DEVICES: "${HARBOR_TPU_CHIP:?set HARBOR_TPU_CHIP}"
+      LIBTPU_INIT_ARGS: --vbar_control_service_url=unix:/var/google/services/tpunetd/user.socket

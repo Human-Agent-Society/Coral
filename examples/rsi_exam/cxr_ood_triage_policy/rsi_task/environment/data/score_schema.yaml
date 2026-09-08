@@ -1,0 +1,46 @@
+# Field dictionary for the frozen chest-radiograph score bundles.
+# Scores are probabilities in [0,1] from a fixed public DenseNet-121 classifier
+# (18 findings). Studies come from an in-domain site and an unseen site.
+
+study_uid: salted opaque study identifier (string)
+site_id: opaque site label (integer); an in-domain and an unseen site are both present
+view: radiographic projection, "PA" or "AP"
+age_bucket: coarse age band (integer)
+sex: "M" or "F"
+scores: map of finding name -> probability in [0,1]
+
+# In the labeled calibration sample only:
+label: 1 if the study has any critical finding, else 0
+
+frozen_model_findings:   # the 18 score keys
+  - Atelectasis
+  - Consolidation
+  - Infiltration
+  - Pneumothorax
+  - Edema
+  - Emphysema
+  - Fibrosis
+  - Effusion
+  - Pneumonia
+  - Pleural_Thickening
+  - Cardiomegaly
+  - Nodule
+  - Mass
+  - Hernia
+  - Lung Lesion
+  - Fracture
+  - Lung Opacity
+  - Enlarged Cardiomediastinum
+
+critical_findings:       # the 8 findings that define a "critical" study and drive sensitivity
+  - Effusion
+  - Cardiomegaly
+  - Edema
+  - Pneumonia
+  - Consolidation
+  - Atelectasis
+  - Pneumothorax
+  - Mass
+
+review_budget: 0.20      # fraction of studies that may be referred (shared across sites)
+ece_bins: 15

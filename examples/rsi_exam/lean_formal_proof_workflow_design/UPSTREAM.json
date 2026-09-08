@@ -1,0 +1,40 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "lean_formal_proof_workflow_design",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/lean_formal_proof_workflow_design",
+  "sha256": {
+    "environment/.dockerignore": "6e9b42f36039d8ecf78aaf44b8eef91cde6496acc9ce8e979bb212727e6890e0",
+    "environment/Dockerfile": "ae3251b3267c1a413a69fd09de023e182da5f1575f9394c3bcdc2295393eb104",
+    "environment/child_runner.py": "3b0c929af23078749d333994ec77479a85d5f5c6362ad72b54911f6bd55d0a89",
+    "environment/evaluator.py": "2ba84cc4f2c10f10663af18850af3a213cad719159264c6b50596ac953c6a489",
+    "environment/lean_compiler.py": "174244ba1c7fa0e3dec11780b554585cfd0689a2383cbab4695cc0e192e4bec2",
+    "environment/methods/main/prompt_utils.py": "a1e2503d33de595884f4a8a046c6f0373ef3401550d329cdfa3ed30e1338acf5",
+    "environment/methods/main/solver.py": "1aa84007944053167c5abe22743d70bc6cf6b62eba2792c53cafdbbfc32672d9",
+    "environment/model_proxy.py": "105b61bb0d0b31c956e5657daa049b91f6454ea2e29585b293203922b5c5a231",
+    "environment/selfcheck.py": "fb5235c1901df2b18abc8b21ef277aaaa78ac86a1fab35e2fc258f833df7e86a",
+    "instruction.md": "3f78a31255ab7a60879eb3a960a91f79ddc2077941729ba2c2ecf4dc058c0e5b",
+    "task.toml": "5e8ece60f9a215301a4cebfbc34d338123a9bfcf7da91e74afd43c42c2fb8107",
+    "tests/.dockerignore": "fd30551257e766cf820361a78221d9f3876e291cfd15e4394d105237ebe0f1d7",
+    "tests/Dockerfile": "19ef68acd4c7ed4c8178a3faf9a1a3451609724223a6f2a7181fdaa818d5f23d",
+    "tests/child_runner.py": "3b0c929af23078749d333994ec77479a85d5f5c6362ad72b54911f6bd55d0a89",
+    "tests/evaluator.py": "2ba84cc4f2c10f10663af18850af3a213cad719159264c6b50596ac953c6a489",
+    "tests/grade.py": "3f24cc8382496c8ef43ae76a6b1d247bdf42110072fb9fd9c4ab4135e603e153",
+    "tests/lean_compiler.py": "174244ba1c7fa0e3dec11780b554585cfd0689a2383cbab4695cc0e192e4bec2",
+    "tests/model_proxy.py": "105b61bb0d0b31c956e5657daa049b91f6454ea2e29585b293203922b5c5a231",
+    "tests/test.sh": "5d405174729ee744a70f417cd9f916cf56b4392e86e848e828373757d7898f7d",
+    "tests/test_verifier.py": "b397219eeca5c3aa26e7febf7e0a83d31b857a86cc75828e4aafce8b69961a8c"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/visible.jsonl",
+      "size": 26581,
+      "git_blob_sha1": "c985cd4e007517cdc91692ade0b4aa518cf78d51"
+    },
+    {
+      "path": "tests/heldout/test.jsonl",
+      "size": 19331,
+      "git_blob_sha1": "08c8eaac7d582b3f7a0c370d20f2400c98044b03"
+    }
+  ]
+}

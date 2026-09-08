@@ -1,0 +1,41 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "protein_ligand_cofolding_posebusters",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/protein_ligand_cofolding_posebusters",
+  "sha256": {
+    "environment/.dockerignore": "edb0fcec4f4a1a0c82ae5ccc375f5831dd573052fe6c3d49b185c4714b2d3bb6",
+    "environment/Dockerfile": "95d43bfc071b813bcca7de38f079e6ae1b0c5593ab5918b43083bfb54451fa3e",
+    "environment/docker-compose.yaml": "21cf259c7d1305b7985793382101424529e128cbab7381de82503b2d6340575f",
+    "environment/methods/main/cofold_utils.py": "d0742d1ef51a09ea8f6b3e728e5899252fb85c2acd25416756c4cd0b108ffcf2",
+    "environment/methods/main/solver.py": "b51091399052ade98a998788ea4db9d68e134195ba043a42b171b7a806afc669",
+    "environment/metric.py": "78931f6927782e1c4a85b8375ec11a22809cd2be19ccfb907068928938ed2558",
+    "environment/requirements.lock": "e01f3b59995945f5826100573e89ece545ab3f16f73e011f929d21ccdddd5c8d",
+    "environment/selfcheck.py": "c3baf1bde85969a458fa5ad78e3e7ac3e86203679f2f981092d84e055bd0105c",
+    "environment/source_contract.py": "9ccb9a1aaac04755abb5dd4e7cc2ec37bdbb1b39268f3429be649e834559cf4c",
+    "instruction.md": "11d07c78193deb9bb0c0eb141f6972b7eb881d0fe66a2f0f265f4112cf1799c1",
+    "task.toml": "cdaab95a2b6b82053ed7407cb6306e5a06d6908783b114d875e6e788dcb1d5d2",
+    "tests/.dockerignore": "b401fcb73c60de2daba0064770292bb409dbe0371d866643f436f280cad33c1b",
+    "tests/Dockerfile": "0cd8b407b9636d14cec7964206ab79c4d89b68d3b893fef62a61b6260e3938d3",
+    "tests/child_predict.py": "432ffcb59f526e69e517b36ab40561f6ccd2c6d23eb3ea6a598a8916c51539c1",
+    "tests/docker-compose.yaml": "6c49d1259168dd0316eae6922a3e7c419cc0e6a4041bf3a1d7e02aa6a28cb998",
+    "tests/evaluate.py": "78931f6927782e1c4a85b8375ec11a22809cd2be19ccfb907068928938ed2558",
+    "tests/fixtures/invalid_method/solver.py": "be58e7ebe6b53b60a89ab35673ceefebe3c0273d2fdb2afdcf07434b81ad2684",
+    "tests/grade.py": "d8719c39d5ee0c5234e7ab08d058cef9a86ac938f7ed003c6385e156f3ee729c",
+    "tests/requirements.lock": "e01f3b59995945f5826100573e89ece545ab3f16f73e011f929d21ccdddd5c8d",
+    "tests/score_pose_worker.py": "66be416b7193478a94289a8ecd8fd8d8ea8c031a9ad0ca81a0cb19a3b603c895",
+    "tests/source_contract.py": "9ccb9a1aaac04755abb5dd4e7cc2ec37bdbb1b39268f3429be649e834559cf4c",
+    "tests/test.sh": "b83c39011696c905b5874bfb45ae6cb5949a5a8058cf4decebc9f87704fcf918",
+    "tests/test_cofold_utils_unit.py": "0bff221f1e53e70d857fa9016f2b295faccb4159f3fdb52de18da886c3519071",
+    "tests/test_evaluate.py": "f2b7501d26ad884d4d2ad74f9d0a0b398af89128c3a78fcaf06b995037d13e4d",
+    "tests/test_secure_grade.py": "b1b7a9caee95023eb7790ca5a8c48558e9899ef8cf92ec0db245bf3871ccaf59",
+    "tests/test_selfcheck_process.py": "66cf60aac2b955eada022f67fdb4d459368fcfc9190e224f90f2662836704930"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 60,
+      "git_blob_sha1": "abdb2b0d8f9e45dbb41ad6f3ee77d418841bbfb2"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+/rsi_task/tests/anchor_checkpoints/baseline/model.pt
+/rsi_task/tests/anchor_checkpoints/reference/model.pt
+/rsi_task/tests/anchor_checkpoints/sota/model.pt
+/rsi_task/tests/anchors.json
+/rsi_task/tests/split_check_results.json

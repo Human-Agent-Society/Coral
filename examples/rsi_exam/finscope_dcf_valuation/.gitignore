@@ -1,0 +1,11 @@
+/rsi_task/environment/data/calibration_truth.csv
+/seed/harbor/environment/data/calibration_truth.csv
+/rsi_task/environment/data/coverage.csv
+/seed/harbor/environment/data/coverage.csv
+/rsi_task/environment/data/fundamentals.csv
+/seed/harbor/environment/data/fundamentals.csv
+/rsi_task/tests/anchors.json
+/rsi_task/tests/features/calibration_truth.csv
+/rsi_task/tests/features/coverage.csv
+/rsi_task/tests/features/fundamentals.csv
+/rsi_task/tests/heldout/holdout_truth.json

@@ -1,0 +1,25 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "qlib_alpha_factor_icir",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/qlib_alpha_factor_icir",
+  "sha256": {
+    "environment/Dockerfile": "cbb61f6e120ca6071d9f9b3282a0cd38b098ab7a1991b1397417230c0fa0c3df",
+    "environment/methods/main/solver.py": "a1528ed43a248cb2f27739abca2910a14d3ccbaf0e4c7ac243562a0b2b67dff8",
+    "environment/prepare_data.py": "e7fb3ccbdb362d44667b85db8145f7c0c64f4d51ddd328bb047f0e3b5f6dc33d",
+    "environment/selfcheck.py": "799312fad982332493288f138ea3f6fadce857cdf003e3d25d80189c68cb5b85",
+    "instruction.md": "a7681153db675742adfee7f0dedbc957366630e369ef9ce1aeae3cc33eda2116",
+    "task.toml": "f3f640395001112ba33e1e6adc5b63b027f3a4128f575d0a9063f7e467fabc7a",
+    "tests/Dockerfile": "54d9b55d7a63ec47abc5d04699686ba805e812b69a381e11c624a168e108fa2f",
+    "tests/grade.py": "7685404fc74e2fc5d4acd96c901c79b03847f03d145fb1314e180c7a84cfc4ed",
+    "tests/prepare_data.py": "e7fb3ccbdb362d44667b85db8145f7c0c64f4d51ddd328bb047f0e3b5f6dc33d",
+    "tests/test.sh": "4384e630cc6fc4722731b6339700af21904621204990c01c1c87631dc19b6c44"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 48,
+      "git_blob_sha1": "75a1d3b6a47ee5280c2e5f36d37f45bcc6dcce39"
+    }
+  ]
+}
