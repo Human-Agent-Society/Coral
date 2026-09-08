@@ -50,6 +50,63 @@ def test_config_from_dict():
     assert config.agents.count == 1  # default
 
 
+def test_meta_evolve_disabled_by_default():
+    config = AgentConfig()
+
+    assert config.meta_evolve.enabled is False
+    assert config.meta_evolve.arms == []
+    assert config.meta_evolve.exploration_weight == 1.0
+
+
+def test_meta_evolve_coerces_nested_dicts():
+    config = AgentConfig(
+        meta_evolve={
+            "enabled": True,
+            "exploration_weight": 0.5,
+            "arms": [
+                {"operator": "prompt", "mutation": "rewrite"},
+                {"operator": "implementation", "mutation": "replace"},
+            ],
+        }
+    )
+
+    assert config.meta_evolve.enabled is True
+    assert config.meta_evolve.exploration_weight == 0.5
+    assert [(arm.operator, arm.mutation) for arm in config.meta_evolve.arms] == [
+        ("prompt", "rewrite"),
+        ("implementation", "replace"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ({"enabled": True, "arms": []}, "at least two arms"),
+        (
+            {
+                "enabled": True,
+                "arms": [{"operator": "prompt", "mutation": "rewrite"}],
+            },
+            "at least two arms",
+        ),
+        ({"exploration_weight": -1.0}, "exploration_weight"),
+        ({"arms": [{"operator": " ", "mutation": "rewrite"}]}, "operator"),
+        (
+            {
+                "arms": [
+                    {"operator": "prompt", "mutation": "rewrite"},
+                    {"operator": "prompt", "mutation": "rewrite"},
+                ]
+            },
+            "unique",
+        ),
+    ],
+)
+def test_meta_evolve_rejects_invalid_configuration(payload, message):
+    with pytest.raises(ValueError, match=message):
+        AgentConfig(meta_evolve=payload)
+
+
 def test_legacy_grader_type_rejected():
     """Removed grader.type field raises a ValueError with migration guidance."""
     data = {

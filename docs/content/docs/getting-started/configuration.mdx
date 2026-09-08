@@ -38,6 +38,8 @@ agents:
     - name: consolidate
       every: 10
       global: true
+  meta_evolve:
+    enabled: false
 
 islands:
   count: 1
@@ -153,6 +155,7 @@ packaged-grader layout.
 | `timeout` | int | `3600` | Agent session timeout in seconds |
 | `research` | bool | `true` | Enable web search in agent workflow |
 | `heartbeat` | list | see below | Periodic actions triggered during eval loop |
+| `meta_evolve` | object | disabled | Optional operator/mutation attribution and pivot recommendation loop; see below |
 
 ### Heartbeat actions
 
@@ -172,6 +175,65 @@ You can also define custom heartbeat actions with a prompt:
 ```bash
 coral heartbeat set review --every 5 --prompt "Review your approach and consider alternatives."
 ```
+
+### Gradient-style meta-evolve
+
+Meta-evolve is opt-in and disabled by default. When enabled, it records which
+configured operator/mutation arm produced each real attempt, estimates that
+arm's directional lift relative to the attempt's parent, and adds an advisory
+recommendation only when the built-in `pivot` heartbeat fires.
+
+```yaml
+agents:
+  meta_evolve:
+    enabled: true
+    exploration_weight: 1.0
+    arms:
+      - operator: prompt
+        mutation: rewrite-instructions
+      - operator: prompt
+        mutation: add-examples
+      - operator: implementation
+        mutation: replace-algorithm
+```
+
+Enabled mode requires at least two unique arms. Operator and mutation names
+must be non-empty, and `exploration_weight` must be finite and non-negative.
+Configuration order is significant: it determines which unobserved arm is
+recommended first and breaks otherwise equal selection scores.
+
+Every real eval in enabled mode must identify one configured pair:
+
+```bash
+coral eval -m "rewrite task instructions" \
+  --operator prompt \
+  --mutation rewrite-instructions
+```
+
+Both flags are required together and are validated before CORAL stages or
+commits any files. Tune attempts may omit attribution; tune and grader-error
+attempts never update lift statistics.
+
+An observation counts only when the current attempt and its parent are scored,
+non-archived, real attempts from the same agent. Positive directional lift
+always means improvement: `current - parent` for maximize graders and
+`parent - current` for minimize graders. Missing or ineligible parents and
+malformed or unconfigured attribution are reported as skipped evidence, not as
+zero reward.
+
+CORAL first recommends unobserved arms in configuration order. After every arm
+has an observation, it uses `mean_lift + exploration_weight *
+sqrt(log(total_observations) / arm_observations)`, with configuration order as
+the deterministic tie-breaker. Statistics are rebuilt from existing Attempt
+JSON after manager restart, resume, or island migration; no second mutable
+state file is created.
+
+This is a credit-assignment proxy, not proof of causality or production token
+savings. To evaluate it, compare uniform arm rotation against meta-evolve with
+the same arms, real-eval budget, grader, starting point, and runtime settings.
+Report cumulative directional lift and arm allocation separately, and do not
+generalize a deterministic fixture result into an operational efficiency
+claim.
 
 ## `islands` section
 

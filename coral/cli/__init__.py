@@ -426,7 +426,8 @@ Run 'coral <command> --help' for details on any command."""
             '  coral eval -m "Optimized inner loop"\n'
             '  coral eval -m "Try variant A" --no-wait\n'
             '  coral eval -m "Heavy benchmark" --timeout 1800\n'
-            '  coral eval --tune -m "Sweep lr=1e-3 vs 3e-4"'
+            '  coral eval --tune -m "Sweep lr=1e-3 vs 3e-4"\n'
+            '  coral eval -m "Rewrite prompt" --operator prompt --mutation rewrite'
         ),
         formatter_class=_CommandHelpFormatter,
     )
@@ -457,6 +458,14 @@ Run 'coral <command> --help' for details on any command."""
             "hyperparameter sweeps and config exploration that shouldn't "
             "trigger pivot prompts."
         ),
+    )
+    p_eval.add_argument(
+        "--operator",
+        help="Meta-evolve operator for this eval (requires --mutation)",
+    )
+    p_eval.add_argument(
+        "--mutation",
+        help="Meta-evolve mutation for this eval (requires --operator)",
     )
 
     p_wait = sub.add_parser(

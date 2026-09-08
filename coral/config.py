@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -204,6 +205,44 @@ class AgentAssignmentConfig:
 
 
 @dataclass
+class MetaEvolveArmConfig:
+    """One discrete operator/mutation arm available to meta-evolve."""
+
+    operator: str
+    mutation: str
+
+    def __post_init__(self) -> None:
+        self.operator = self.operator.strip()
+        self.mutation = self.mutation.strip()
+        if not self.operator:
+            raise ValueError("agents.meta_evolve.arms[].operator must be non-empty")
+        if not self.mutation:
+            raise ValueError("agents.meta_evolve.arms[].mutation must be non-empty")
+
+
+@dataclass
+class MetaEvolveConfig:
+    """Optional lift-guided operator recommendation configuration."""
+
+    enabled: bool = False
+    exploration_weight: float = 1.0
+    arms: list[MetaEvolveArmConfig] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.arms = [
+            arm if isinstance(arm, MetaEvolveArmConfig) else MetaEvolveArmConfig(**arm)
+            for arm in self.arms
+        ]
+        if not math.isfinite(self.exploration_weight) or self.exploration_weight < 0:
+            raise ValueError("agents.meta_evolve.exploration_weight must be finite and >= 0")
+        pairs = [(arm.operator, arm.mutation) for arm in self.arms]
+        if len(set(pairs)) != len(pairs):
+            raise ValueError("agents.meta_evolve arms must be unique")
+        if self.enabled and len(self.arms) < 2:
+            raise ValueError("enabled agents.meta_evolve requires at least two arms")
+
+
+@dataclass
 class AgentConfig:
     """Agent spawning configuration."""
 
@@ -246,6 +285,7 @@ class AgentConfig:
             HeartbeatActionConfig(name="lint_wiki", every=10, is_global=True),
         ]
     )
+    meta_evolve: MetaEvolveConfig = field(default_factory=MetaEvolveConfig)
     skills: list[str] = field(default_factory=list)  # skill dirs copied to .coral/public/skills/
     research: bool = True  # enable web search / literature review step in workflow
     stagger_seconds: int = 0  # delay between spawning each agent (rate-limit backpressure)
@@ -274,6 +314,8 @@ class AgentConfig:
         # leave nested sandbox config as a plain dict; coerce like RunConfig.stop.
         if isinstance(self.sandbox, dict):
             self.sandbox = SandboxConfig(**self.sandbox)
+        if isinstance(self.meta_evolve, dict):
+            self.meta_evolve = MetaEvolveConfig(**self.meta_evolve)
         if self.sandbox.enabled and self.isolate_user:
             raise ValueError(
                 "agents.sandbox and agents.isolate_user are mutually exclusive — "

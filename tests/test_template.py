@@ -73,6 +73,44 @@ def test_generate_coral_md_without_optional_sections():
     assert "higher is better" in md
 
 
+def test_generate_coral_md_disabled_meta_evolve_adds_no_guidance():
+    config = CoralConfig(
+        task=TaskConfig(name="Simple Task", description="Do the thing."),
+        grader=GraderConfig(),
+    )
+
+    for single_agent in (False, True):
+        md = generate_coral_md(config, "agent-1", single_agent=single_agent)
+        assert "## Meta-evolve attribution" not in md
+        assert "--operator" not in md
+        assert "--mutation" not in md
+
+
+def test_generate_coral_md_enabled_meta_evolve_lists_arms_and_eval_contract():
+    config = CoralConfig(
+        task=TaskConfig(name="Adaptive Task", description="Improve the score."),
+        grader=GraderConfig(),
+        agents=AgentConfig(
+            meta_evolve={
+                "enabled": True,
+                "arms": [
+                    {"operator": "prompt", "mutation": "rewrite"},
+                    {"operator": "implementation", "mutation": "replace"},
+                ],
+            }
+        ),
+    )
+
+    for single_agent in (False, True):
+        md = generate_coral_md(config, "agent-1", single_agent=single_agent)
+        assert "## Meta-evolve attribution" in md
+        assert "`prompt` / `rewrite`" in md
+        assert "`implementation` / `replace`" in md
+        assert "--operator prompt --mutation rewrite" in md
+        assert "Every real eval" in md
+        assert "first unobserved arm" in md
+
+
 def test_generate_coral_md_single_agent():
     """Single-agent template omits multi-agent sharing references."""
     config = CoralConfig(

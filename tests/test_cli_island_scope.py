@@ -478,6 +478,32 @@ def test_show_without_breadcrumb_resolves_anywhere(monkeypatch, multi_island_lay
     assert "1-agent-1" in out
 
 
+def test_show_renders_meta_evolve_attribution(monkeypatch, multi_island_layout, capsys):
+    commit = "010a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"
+    attempt = _make_attempt(commit, "1")
+    attempt.metadata["meta_evolve"] = {
+        "operator": "prompt",
+        "mutation": "rewrite",
+    }
+    write_attempt(multi_island_layout, attempt, island_id="1")
+    monkeypatch.setattr(
+        query_module,
+        "find_coral_dir_and_island",
+        lambda task=None, run=None: (multi_island_layout, None),
+    )
+
+    cmd_show(
+        argparse.Namespace(
+            hash=commit,
+            diff=False,
+            task=None,
+            run=None,
+        )
+    )
+
+    assert "Meta:    prompt / rewrite" in capsys.readouterr().out
+
+
 # --------------------------------------------------------------------------- #
 # Step 6: cmd_status                                                          #
 # --------------------------------------------------------------------------- #

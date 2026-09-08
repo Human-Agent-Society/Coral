@@ -154,6 +154,12 @@ def cmd_show(args: argparse.Namespace) -> None:
 
     print(f"Budget:  {get_budget_class(data.get('metadata'))}")
     meta = data.get("metadata") or {}
+    from coral.agent.meta_evolve import attempt_attribution
+    from coral.types import Attempt
+
+    attribution = attempt_attribution(Attempt.from_dict(data))
+    if attribution is not None:
+        print(f"Meta:    {attribution.operator} / {attribution.mutation}")
     if meta.get("archived") is True:
         reason = meta.get("archive_reason")
         print(f"Archived: yes ({reason})" if reason else "Archived: yes")

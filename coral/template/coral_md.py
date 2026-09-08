@@ -36,6 +36,11 @@ def generate_coral_md(
 
     # Determine score direction from config or grader type
     score_direction = _get_score_direction(config)
+    # Local import avoids coral.agent's eager AgentManager export looping back
+    # through this template module during package initialization.
+    from coral.agent.meta_evolve import render_bootstrap_guidance
+
+    meta_evolve_section = render_bootstrap_guidance(config.agents.meta_evolve)
 
     # Research step is conditional
     research_enabled = config.agents.research
@@ -107,6 +112,7 @@ def generate_coral_md(
         knowledge_step_num=step_offset + 4,
         research_back_reference=research_back_reference,
         repeat_research_hint=repeat_research_hint,
+        meta_evolve_section=meta_evolve_section,
     )
 
     # Multi-island provenance hint: append once at the end so the existing

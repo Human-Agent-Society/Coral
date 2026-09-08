@@ -209,6 +209,21 @@ def _set_grader_config(repo: Path, **fields) -> None:
         yaml.dump(cfg, f)
 
 
+def _enable_meta_evolve(repo: Path) -> None:
+    cfg_path = repo / ".coral" / "config.yaml"
+    with open(cfg_path) as f:
+        cfg = yaml.safe_load(f)
+    cfg.setdefault("agents", {})["meta_evolve"] = {
+        "enabled": True,
+        "arms": [
+            {"operator": "prompt", "mutation": "rewrite"},
+            {"operator": "implementation", "mutation": "replace"},
+        ],
+    }
+    with open(cfg_path, "w") as f:
+        yaml.dump(cfg, f)
+
+
 def _head_hash(repo: Path) -> str:
     return subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"],
@@ -216,6 +231,67 @@ def _head_hash(repo: Path) -> str:
         text=True,
         check=True,
     ).stdout.strip()
+
+
+def test_submit_eval_rejects_unknown_meta_arm_before_commit():
+    with tempfile.TemporaryDirectory() as d:
+        repo = _setup_repo_with_config(Path(d))
+        _enable_meta_evolve(repo)
+        (repo / "hello.py").write_text("print('changed')\n")
+        head_before = _head_hash(repo)
+
+        with pytest.raises(RuntimeError, match="configured arm"):
+            submit_eval(
+                message="unknown arm",
+                agent_id="agent-test",
+                workdir=str(repo),
+                wait=False,
+                operator="prompt",
+                mutation="unknown",
+            )
+
+        assert _head_hash(repo) == head_before
+        assert (repo / "hello.py").read_text() == "print('changed')\n"
+
+
+def test_eval_cli_writes_meta_evolve_attribution():
+    with tempfile.TemporaryDirectory() as d:
+        repo = _setup_repo_with_config(Path(d))
+        _enable_meta_evolve(repo)
+        (repo / "hello.py").write_text("print('changed')\n")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "coral.cli",
+                "eval",
+                "--no-wait",
+                "--workdir",
+                str(repo),
+                "--agent",
+                "agent-test",
+                "--operator",
+                "prompt",
+                "--mutation",
+                "rewrite",
+                "-m",
+                "attribute attempt",
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert "Meta:    prompt / rewrite" in result.stdout
+        attempt_files = list((repo / ".coral" / "public" / "attempts").glob("*.json"))
+        assert len(attempt_files) == 1
+        data = json.loads(attempt_files[0].read_text())
+        assert data["metadata"]["meta_evolve"] == {
+            "operator": "prompt",
+            "mutation": "rewrite",
+        }
 
 
 def test_submit_eval_rejects_when_agent_at_pending_limit():

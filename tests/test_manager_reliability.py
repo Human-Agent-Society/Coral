@@ -9,6 +9,7 @@ file.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,6 +24,8 @@ from coral.agent.exit_classifier import (
     classify_by_uptime,
     claude_code_has_result,
 )
+from coral.agent.heartbeat import HeartbeatAction
+from coral.agent.manager import AgentManager
 from coral.agent.state import (
     AGENT_STATE_SCHEMA_VERSION,
     AgentRuntimeState,
@@ -32,9 +35,10 @@ from coral.agent.state import (
     state_file_path,
     write_agent_state,
 )
-from coral.config import AgentConfig
+from coral.config import AgentConfig, CoralConfig
 from coral.hub.attempts import agent_in_grader_queue, write_attempt
 from coral.types import Attempt
+from coral.workspace.project import ProjectPaths
 
 # ---------------------------------------------------------------------------
 # classify_by_uptime — markerless runtime fallback
@@ -450,3 +454,162 @@ def test_monitor_loop_stall_watchdog_does_not_crash_multi_island(tmp_path):
             if s.island_id is not None:
                 attempts.extend(read_attempts(coral_dir, island_id=s.island_id))
         assert attempts == []  # empty islands, no errors raised
+
+
+def _meta_evolve_manager(tmp_path: Path, *, islands: int = 1) -> AgentManager:
+    config = CoralConfig.from_dict(
+        {
+            "task": {"name": "adaptive", "description": "improve"},
+            "agents": {
+                "count": max(2, islands),
+                "meta_evolve": {
+                    "enabled": True,
+                    "arms": [
+                        {"operator": "prompt", "mutation": "rewrite"},
+                        {"operator": "implementation", "mutation": "replace"},
+                    ],
+                },
+            },
+            "islands": {"count": islands},
+        }
+    )
+    manager = AgentManager(config)
+    manager.paths = ProjectPaths(
+        results_dir=tmp_path,
+        task_dir=tmp_path,
+        run_dir=tmp_path,
+        coral_dir=tmp_path / ".coral",
+        agents_dir=tmp_path / "agents",
+        repo_dir=tmp_path / "repo",
+    )
+    return manager
+
+
+def _meta_attempt(
+    *,
+    commit_hash: str,
+    agent_id: str,
+    score: float,
+    parent_hash: str | None,
+    operator: str | None = None,
+    mutation: str | None = None,
+) -> Attempt:
+    metadata = {}
+    if operator is not None and mutation is not None:
+        metadata["meta_evolve"] = {
+            "operator": operator,
+            "mutation": mutation,
+        }
+    return Attempt(
+        commit_hash=commit_hash,
+        agent_id=agent_id,
+        title="meta attempt",
+        score=score,
+        status="improved",
+        parent_hash=parent_hash,
+        timestamp="2026-08-29T00:00:00+00:00",
+        metadata=metadata,
+    )
+
+
+def _write_two_arm_history(
+    coral_dir: Path,
+    agent_id: str,
+    *,
+    cross_island: bool = False,
+) -> None:
+    attempts = [
+        _meta_attempt(
+            commit_hash="0" * 40,
+            agent_id=agent_id,
+            score=0.0,
+            parent_hash=None,
+        ),
+        _meta_attempt(
+            commit_hash="1" * 40,
+            agent_id=agent_id,
+            score=2.0,
+            parent_hash="0" * 40,
+            operator="prompt",
+            mutation="rewrite",
+        ),
+        _meta_attempt(
+            commit_hash="2" * 40,
+            agent_id=agent_id,
+            score=0.0,
+            parent_hash=None,
+        ),
+        _meta_attempt(
+            commit_hash="3" * 40,
+            agent_id=agent_id,
+            score=0.0,
+            parent_hash="2" * 40,
+            operator="implementation",
+            mutation="replace",
+        ),
+    ]
+    if cross_island:
+        for index, attempt in enumerate(attempts):
+            write_attempt(coral_dir, attempt, island_id=str(index % 2))
+    else:
+        for attempt in attempts:
+            write_attempt(coral_dir, attempt)
+
+
+def test_meta_evolve_recommendation_precedes_pivot_and_is_logged(
+    tmp_path: Path,
+    caplog,
+) -> None:
+    manager = _meta_evolve_manager(tmp_path)
+    _write_two_arm_history(manager.paths.coral_dir, "agent-1")
+    pivot = HeartbeatAction(name="pivot", every=1, prompt="change direction")
+    reflect = HeartbeatAction(name="reflect", every=1, prompt="reflect")
+    caplog.set_level(logging.INFO)
+
+    prompt_sections = manager._heartbeat_prompts_for_actions("agent-1", [pivot])
+
+    assert "Recommended operator: prompt" in prompt_sections[0]
+    assert "Recommended mutation: rewrite" in prompt_sections[0]
+    assert "Selection: upper-confidence" in prompt_sections[0]
+    assert prompt_sections[1] == "change direction"
+    assert "prompt/rewrite (upper-confidence)" in caplog.text
+    assert manager._heartbeat_prompts_for_actions("agent-1", [reflect]) == ["reflect"]
+
+
+def test_meta_evolve_recommendation_is_disabled_by_default(tmp_path: Path) -> None:
+    config = CoralConfig.from_dict({"task": {"name": "plain", "description": "unchanged"}})
+    manager = AgentManager(config)
+    manager.paths = _meta_evolve_manager(tmp_path).paths
+    pivot = HeartbeatAction(name="pivot", every=1, prompt="change direction")
+
+    assert manager._heartbeat_prompts_for_actions("agent-1", [pivot]) == ["change direction"]
+
+
+def test_meta_evolve_reconstructs_history_across_islands(tmp_path: Path) -> None:
+    manager = _meta_evolve_manager(tmp_path, islands=2)
+    agent_id = "0-agent-1"
+    _write_two_arm_history(manager.paths.coral_dir, agent_id, cross_island=True)
+    pivot = HeartbeatAction(name="pivot", every=1, prompt="change direction")
+
+    prompt_sections = manager._heartbeat_prompts_for_actions(agent_id, [pivot])
+
+    assert "Recommended operator: prompt" in prompt_sections[0]
+    assert "Selection: upper-confidence" in prompt_sections[0]
+    assert prompt_sections[1] == "change direction"
+
+
+def test_meta_evolve_recommendation_failure_preserves_original_prompt(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import coral.agent.manager as manager_module
+
+    manager = _meta_evolve_manager(tmp_path)
+    pivot = HeartbeatAction(name="pivot", every=1, prompt="change direction")
+
+    def fail_to_read(*args, **kwargs):
+        raise OSError("attempt history unavailable")
+
+    monkeypatch.setattr(manager_module, "get_agent_attempts", fail_to_read)
+
+    assert manager._heartbeat_prompts_for_actions("agent-1", [pivot]) == ["change direction"]

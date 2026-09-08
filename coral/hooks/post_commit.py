@@ -129,6 +129,8 @@ def submit_eval(
     wait: bool = True,
     poll_timeout: float | None = None,
     tune: bool = False,
+    operator: str | None = None,
+    mutation: str | None = None,
 ) -> Attempt:
     """Stage changes, commit with message, write a pending attempt record.
 
@@ -157,6 +159,18 @@ def submit_eval(
     if not config_path.exists():
         raise FileNotFoundError(f"No config.yaml found at {config_path}")
     config = CoralConfig.from_yaml(config_path)
+
+    from coral.agent.meta_evolve import attribution_metadata, validate_attribution
+
+    try:
+        attribution = validate_attribution(
+            config.agents.meta_evolve,
+            operator=operator,
+            mutation=mutation,
+            tune=tune,
+        )
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
 
     # Determine the agent's island (if any) from the .coral_island breadcrumb
     # adjacent to the .coral_dir breadcrumb we discovered above.
@@ -205,6 +219,8 @@ def submit_eval(
     # Write pending record. The grader daemon will observe this and fill in
     # score/status/feedback asynchronously.
     metadata: dict = {}
+    if attribution is not None:
+        metadata.update(attribution_metadata(attribution))
     if tune:
         metadata["budget_class"] = BUDGET_CLASS_TUNE
     if island_id is not None:

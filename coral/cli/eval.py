@@ -84,6 +84,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
     wait = getattr(args, "wait", True)
     timeout = getattr(args, "timeout", None)
     tune = getattr(args, "tune", False)
+    operator = getattr(args, "operator", None)
+    mutation = getattr(args, "mutation", None)
 
     try:
         attempt = submit_eval(
@@ -93,6 +95,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
             wait=wait,
             poll_timeout=timeout,
             tune=tune,
+            operator=operator,
+            mutation=mutation,
         )
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -197,6 +201,11 @@ def _print_attempt_result(attempt, header: str) -> None:
     if budget_class != BUDGET_CLASS_REAL:
         status_line = f"{status_line}  (budget: {budget_class})"
     print(f"Status:  {status_line}")
+    from coral.agent.meta_evolve import attempt_attribution
+
+    attribution = attempt_attribution(attempt)
+    if attribution is not None:
+        print(f"Meta:    {attribution.operator} / {attribution.mutation}")
     if attempt.feedback:
         print(f"Feedback: {attempt.feedback}")
     if attempt.status == "pending":

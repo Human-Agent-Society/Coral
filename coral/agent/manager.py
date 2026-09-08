@@ -32,6 +32,12 @@ from coral.agent.exit_classifier import (
     claude_code_log_has_session_error as _log_has_session_error,
 )
 from coral.agent.heartbeat import HeartbeatRunner
+from coral.agent.meta_evolve import (
+    build_stats,
+    configured_attributions,
+    recommend_arm,
+    render_recommendation,
+)
 from coral.agent.migration import (
     IslandRoster,
     MigrationCandidate,
@@ -53,6 +59,7 @@ from coral.hub._island import island_root
 from coral.hub.attempts import (
     agent_in_grader_queue,
     archive_attempts,
+    get_agent_attempts,
     get_leaderboard,
     read_attempts,
     read_eval_count,
@@ -1466,6 +1473,54 @@ class AgentManager:
             )
         return HeartbeatRunner(heartbeat_actions)
 
+    def _meta_evolve_prompt(self, agent_id: str) -> str:
+        """Build an advisory recommendation from this agent's durable history."""
+        config = self.config.agents.meta_evolve
+        if not config.enabled or self.paths is None:
+            return ""
+        try:
+            attempts = get_agent_attempts(self.paths.coral_dir, agent_id)
+            arms = configured_attributions(config)
+            stats = build_stats(
+                attempts,
+                arms=arms,
+                minimize=self.config.grader.direction == "minimize",
+            )
+            recommendation = recommend_arm(
+                stats=stats,
+                arms=arms,
+                exploration_weight=config.exploration_weight,
+            )
+            logger.info(
+                "Meta-evolve recommendation for %s: %s/%s (%s)",
+                agent_id,
+                recommendation.attribution.operator,
+                recommendation.attribution.mutation,
+                recommendation.selection_mode,
+            )
+            return render_recommendation(recommendation, stats=stats)
+        except Exception as exc:
+            logger.warning(
+                "Unable to build meta-evolve recommendation for %s: %s",
+                agent_id,
+                exc,
+            )
+            return ""
+
+    def _heartbeat_prompts_for_actions(
+        self,
+        agent_id: str,
+        actions: Sequence[Any],
+    ) -> list[str]:
+        """Order advisory meta-evolve evidence before existing action prompts."""
+        prompts: list[str] = []
+        if any(action.name == "pivot" for action in actions):
+            meta_evolve_prompt = self._meta_evolve_prompt(agent_id)
+            if meta_evolve_prompt:
+                prompts.append(meta_evolve_prompt)
+        prompts.extend(action.prompt for action in actions if action.prompt)
+        return prompts
+
     def _is_paused(self, agent_id: str) -> bool:
         """Return True if the agent is currently in PAUSED state.
 
@@ -2449,7 +2504,12 @@ class AgentManager:
 
                     prompts = ["\n".join(header_lines)]
                     action_names = [a.name for a in actions]
-                    prompts.extend(a.prompt for a in actions if a.prompt)
+                    prompts.extend(
+                        self._heartbeat_prompts_for_actions(
+                            committing_agent_id,
+                            actions,
+                        )
+                    )
 
                     combined_prompt = "\n\n".join(prompts)
                     names = ", ".join(action_names)
