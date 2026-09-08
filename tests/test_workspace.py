@@ -897,3 +897,21 @@ def test_setup_worktree_env_uv_pip_install_failure(monkeypatch):
 
         with pytest.raises(RuntimeError, match="Failed to install coral into worktree venv"):
             setup_worktree_env(worktree, ["echo setup"])
+
+
+def test_setup_grader_env_missing_uv_raises_runtime_error(monkeypatch):
+    """A missing `uv` binary must surface as the documented RuntimeError.
+
+    Regression test: setup_grader_env promised RuntimeError on any failure
+    but let subprocess raise a raw FileNotFoundError when `uv` was not on
+    PATH at venv-creation time.
+    """
+    from coral.workspace.grader_env import setup_grader_env
+
+    monkeypatch.setattr("coral.workspace.grader_env.shutil.which", lambda cmd: None)
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        coral_dir = Path(d) / ".coral"
+
+        with pytest.raises(RuntimeError, match="`uv` was not found on PATH"):
+            setup_grader_env(coral_dir, GraderConfig(), Path(d))

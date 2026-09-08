@@ -1,8 +1,11 @@
 """Integration tests for the full CORAL flow."""
 
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
+import pytest
 
 from coral.config import AgentConfig, CoralConfig, GraderConfig, TaskConfig, WorkspaceConfig
 from coral.hub.attempts import (
@@ -17,6 +20,7 @@ from coral.types import Attempt
 from coral.workspace import create_project
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary required")
 def test_full_workspace_creation():
     """Test creating a complete project structure with worktrees."""
     with tempfile.TemporaryDirectory() as d:

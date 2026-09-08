@@ -139,6 +139,12 @@ def setup_grader_env(
     venv_dir.parent.mkdir(parents=True, exist_ok=True)
 
     if not python_path.exists():
+        if shutil.which("uv") is None:
+            raise RuntimeError(
+                "`uv` was not found on PATH; it is required to create the grader venv. "
+                "Install it from https://docs.astral.sh/uv/getting-started/installation/ "
+                "and re-run."
+            )
         logger.info(f"Creating grader venv at {venv_dir}")
         venv_cmd = ["uv", "venv", "--python", sys.executable, str(venv_dir)]
         result = subprocess.run(
