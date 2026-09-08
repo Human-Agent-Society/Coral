@@ -106,6 +106,12 @@ grader daemon, heartbeats, and the runtime registry.
    least one maintainer has approved. The `dev` to `main` release promotion is
    the exception: use **Create a merge commit** so the workflow can verify and
    tag the exact promoted `dev` parent.
+8. **Vercel previews for fork PRs**: deployments of the `web/` dashboard and
+   the `docs/` site are blocked by Vercel's fork protection until a maintainer
+   authorizes them. Instead of clicking through the Vercel dashboard, a
+   maintainer can comment `/ci run` on the PR — a workflow deploys both
+   previews and posts the URLs back as commit statuses and a PR comment.
+   Comments from users without write access are ignored.
 
 ## Coding guidelines
 

@@ -1,0 +1,154 @@
+name: Vercel Preview (/ci run)
+
+# Deploy Vercel previews for a PR when a maintainer comments "/ci run".
+#
+# Why: this repo is connected to two Vercel projects (coral-web, root `web/`;
+# coral-docs, root `docs/`). PRs from forks hit Vercel's Git Fork Protection,
+# so every commit needs a manual "Authorize" click in the Vercel dashboard —
+# one per project. This workflow lets a maintainer trigger both preview
+# deployments by commenting "/ci run" on the PR.
+#
+# Security model: the deployment only runs when the commenter has write,
+# maintain, or admin permission on this repo. The fork's code is built with
+# the Vercel projects' *preview* environment variables, which is the same
+# exposure as clicking Authorize in the Vercel UI. The VERCEL_TOKEN secret is
+# only passed to Vercel CLI invocations.
+#
+# Repo secrets used (already configured in Settings -> Secrets -> Actions):
+#   VERCEL_TOKEN            - token scoped to the Compounding Intelligence team
+#   VERCEL_ORG_ID           - the team ID
+#   VERCEL_PROJECT_ID_WEB   - project ID of coral-web
+#   VERCEL_PROJECT_ID_DOCS  - project ID of coral-docs
+#
+# Note: issue_comment workflows run from the workflow file on the *default*
+# branch, so this only becomes active once it lands on main.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  authorize:
+    name: Check commenter and resolve PR
+    # Only PR comments (not plain issues) that start with "/ci run".
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/ci run')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - name: Check commenter has write access
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const username = context.payload.comment.user.login;
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username,
+            });
+            if (!['admin', 'write', 'maintain'].includes(data.permission)) {
+              core.setFailed(`@${username} does not have write access; ignoring /ci run.`);
+              return;
+            }
+            // Ack the command so the commenter knows it was picked up.
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
+
+      - name: Resolve PR head
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            core.setOutput('sha', pr.head.sha);
+
+  deploy:
+    name: Deploy ${{ matrix.project }} preview
+    needs: authorize
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [web, docs]
+    concurrency:
+      group: vercel-preview-${{ github.event.issue.number }}-${{ matrix.project }}
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ matrix.project == 'web' && secrets.VERCEL_PROJECT_ID_WEB || secrets.VERCEL_PROJECT_ID_DOCS }}
+      STATUS_CONTEXT: vercel-preview/${{ matrix.project }} (/ci run)
+    steps:
+      - name: Set pending commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.authorize.outputs.sha }}',
+              state: 'pending',
+              context: process.env.STATUS_CONTEXT,
+              description: 'Deploying preview…',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project settings (preview env)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Report result on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ok = '${{ steps.deploy.outcome }}' === 'success';
+            const url = '${{ steps.deploy.outputs.url }}';
+            const sha = '${{ needs.authorize.outputs.sha }}';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state: ok ? 'success' : 'failure',
+              context: process.env.STATUS_CONTEXT,
+              description: ok ? 'Preview deployed' : 'Preview deployment failed',
+              target_url: ok ? url : runUrl,
+            });
+            const body = ok
+              ? `✅ Vercel preview (**${{ matrix.project }}**) for \`${sha.slice(0, 7)}\`: ${url}`
+              : `❌ Vercel preview (**${{ matrix.project }}**) failed for \`${sha.slice(0, 7)}\`. [Logs](${runUrl})`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
