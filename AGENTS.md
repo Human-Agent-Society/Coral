@@ -121,6 +121,10 @@ These tend to bite AI-generated PRs in this repo specifically:
   up in the agent's worktree, visible to the running agent.
 - **CORAL.md is generated** by `coral/template/coral_md.py` — don't hand-
   edit the rendered file in a worktree, edit the template instead.
+- **Audit note evidence with `coral notes --audit`** (optionally `--status STATUS`,
+  `--search KW`, or `-n N`). This read-only command checks recorded observations separately
+  from author status. A score comparison needs `evidence.baseline`; missing
+  conditions remain unchecked, and matching arithmetic does not verify causality.
 
 If you're adding a new task, the [`coral-new-task` skill](.claude/skills/coral-new-task/SKILL.md)
 walks through these in detail. For framework-level changes, see

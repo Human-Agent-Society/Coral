@@ -201,6 +201,22 @@ def cmd_notes(args: argparse.Namespace) -> None:
     )
     status = getattr(args, "status", None)
 
+    if getattr(args, "audit", False):
+        from coral.hub.notes_audit import format_audits
+
+        if any(getattr(args, key, None) for key in ("history", "diff", "read")):
+            raise SystemExit("--audit cannot be combined with --read, --history, or --diff")
+        entries = list_notes(str(coral_dir), island_id=island_id, status=status, audit=True)
+        if getattr(args, "search", None):
+            query = args.search.lower()
+            entries = [e for e in entries if query in (e["title"] + "\n" + e["body"]).lower()]
+        if getattr(args, "recent", None) is not None:
+            if args.recent < 1:
+                raise SystemExit("--recent must be positive with --audit")
+            entries = entries[-args.recent :]
+        print(format_audits(entries))
+        return
+
     if getattr(args, "history", False):
         from coral.hub.checkpoint import checkpoint_history
 

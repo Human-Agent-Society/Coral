@@ -32,6 +32,8 @@ export default function Knowledge() {
   }, []);
 
   useSSE({
+    "attempt:new": refreshNotes,
+    "attempt:update": refreshNotes,
     "note:update": () => {
       refreshNotes();
       refreshGraph();
@@ -114,6 +116,7 @@ export default function Knowledge() {
                   {selectedNote.relative_path}
                 </p>
                 <NoteMeta note={selectedNote} />
+                <NoteAudit note={selectedNote} />
                 <div className="border-l-2 border-border pl-3 font-body text-[13px] leading-relaxed whitespace-pre-wrap text-muted-fg">
                   {selectedNote.body}
                 </div>
@@ -121,7 +124,7 @@ export default function Knowledge() {
             ) : (
               <p className="mt-3 font-body text-[12px] text-muted-fg">
                 Click a node to read the note. Edges show how notes relate; node color is the
-                claim status.
+                author-reported claim status.
               </p>
             )}
           </div>
@@ -154,6 +157,12 @@ export default function Knowledge() {
                           <p className="font-display text-[14px] font-semibold leading-snug">
                             {note.title}
                           </p>
+                          {note.audit && (
+                            <p className="font-mono text-[10px] text-muted-fg mt-1">
+                              Evidence audit: {Object.values(note.audit.checks).some((c) => c.status === "failed")
+                                ? "issues found" : "partial checks; claim not verified"}
+                            </p>
+                          )}
                         </div>
                         <span className="font-mono text-xs text-muted-fg shrink-0">
                           {expandedNote === note.index ? "−" : "+"}
@@ -164,6 +173,7 @@ export default function Knowledge() {
                         <div className="pb-4 pl-10 pr-4">
                           <div className="border-l-2 border-border pl-4">
                             <NoteMeta note={note} />
+                            <NoteAudit note={note} />
                             <div className="font-body text-[13px] leading-relaxed whitespace-pre-wrap text-muted-fg">
                               {note.body}
                             </div>
@@ -214,6 +224,28 @@ export default function Knowledge() {
         )}
       </div>
     </>
+  );
+}
+
+function NoteAudit({ note }: { note: Note }) {
+  if (!note.audit) return null;
+  return (
+    <div className="border border-border rounded-md p-3 mb-3">
+      <p className="font-mono text-[11px] mb-2">System evidence audit</p>
+      <p className="font-body text-[12px] text-muted-fg mb-2">
+        Checks recorded observations. Author status and confidence do not verify a claim.
+      </p>
+      {Object.entries(note.audit.checks).map(([dimension, check]) => (
+        <p key={dimension} className="font-body text-[12px] text-muted-fg mb-1">
+          <strong>{dimension}: {check.status}</strong> — {check.message}
+        </p>
+      ))}
+      {note.audit.improved !== undefined && (
+        <p className="font-body text-[12px] text-muted-fg">
+          Recorded score {note.audit.improved ? "improved" : "did not improve"} under matching conditions.
+        </p>
+      )}
+    </div>
   );
 }
 

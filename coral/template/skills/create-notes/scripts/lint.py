@@ -253,8 +253,13 @@ def _lint_note(
             )
 
     evidence = meta.get("evidence")
+    if isinstance(evidence, dict) and "score_delta" in evidence and not evidence.get("baseline"):
+        warnings.append(
+            "`evidence.score_delta` needs an explicit `evidence.baseline` — "
+            "`based_on` is provenance, not the comparison baseline; run `coral notes --audit`"
+        )
     if status == "confirmed":
-        verified = isinstance(evidence, dict) and bool(evidence.get("verified"))
+        verified = isinstance(evidence, dict) and evidence.get("verified") is True
         if not verified:
             warnings.append(
                 "`status: confirmed` without `evidence.verified: true` — a "

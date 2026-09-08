@@ -98,6 +98,7 @@ status: <confirmed | refuted | untested>
 confidence: <low | medium | high>
 evidence:
   attempt: <commit hash>
+  baseline: <explicit comparison commit hash; omit if no comparison>
   score_delta: <baseline → this; signed number>
   verified: <true | false>
 based_on: [<prior hash>, <another hash if applicable>]   # YAML list — one is fine, more is better
@@ -272,6 +273,14 @@ Plus, when applicable: `commit:` (experiment notes), `generation:` (focus notes,
 The hub now makes the gap loud, not silent: a `creator:`-less note shows as `(unknown)` in `coral notes`, lands in `scripts/unattributed.py` output, and renders with `creator: unknown` in the knowledge-graph node. If you see your own note tagged `(unknown)`, append a `creator:` line — the team-level views still won't pick it up until you do.
 
 ### Schema stewardship (shared and evolving)
+
+For score comparisons, set `evidence.baseline` to the exact comparison attempt
+and `score_delta` to result minus baseline, regardless of scoring direction.
+`based_on` records provenance and is not a substitute for the comparison baseline.
+Run `coral notes --audit` to check the recorded evidence. The audit is read-only:
+it does not certify the causal explanation or turn author-written `status`,
+`confidence`, or `evidence.verified` into system verification. Missing evaluation
+conditions or independent repeat records remain unchecked.
 
 The notes schema is a living, team-owned contract. Agents collectively maintain and co-evolve the notes schema
 as needs emerge; do not treat it as fixed boilerplate owned only by the

@@ -33,6 +33,7 @@ headings) format is also supported.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from datetime import UTC, datetime
@@ -83,10 +84,8 @@ def _jsonsafe(value: Any) -> Any:
 
 
 def _notes_dir(coral_dir: str | Path, island_id: str | int | None = None) -> Path:
-    """Return the path to the notes directory, ensuring it exists."""
-    p = island_root(coral_dir, island_id) / "notes"
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+    """Resolve the notes directory without creating it during read-only queries."""
+    return island_root(coral_dir, island_id) / "notes"
 
 
 _SYSTEM_NOTE_FILENAMES = {"notes.md", "index.md"}
@@ -210,7 +209,8 @@ def _parse_legacy_entries(text: str) -> list[dict[str, Any]]:
 
 def _parse_note_file(path: Path) -> dict[str, Any]:
     """Parse a single note .md file into an entry dict."""
-    text = path.read_text(encoding="utf-8")
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
     meta, body = _parse_frontmatter(text)
 
     # Title: prefer a body `# heading`, then a frontmatter `title:`, then the
@@ -228,6 +228,7 @@ def _parse_note_file(path: Path) -> dict[str, Any]:
 
     creator_raw = str(meta.get("creator", "") or "").strip()
     entry: dict[str, Any] = {
+        "content_sha256": hashlib.sha256(raw).hexdigest(),
         "date": str(meta.get("created", "") or ""),
         "title": title,
         "body": body,
@@ -352,6 +353,7 @@ def list_notes(
     *,
     include_raw: bool = False,
     status: str | None = None,
+    audit: bool = False,
 ) -> list[dict[str, Any]]:
     """List all note entries from the notes directory.
 
@@ -369,7 +371,15 @@ def list_notes(
     ``status`` filters on the parsed frontmatter value after trimming
     surrounding whitespace and normalizing case. Notes without a status are
     excluded only when this filter is active.
+
+    ``audit`` attaches fresh system evidence checks, separate from author fields.
     """
+    if audit:
+        from coral.hub.notes_audit import attach_audits
+
+        entries = list_notes(coral_dir, island_id, include_raw=include_raw, status=status)
+        attach_audits(coral_dir, entries, island_id)
+        return entries
     coral_dir = Path(coral_dir)
     if island_id is not None or not (coral_dir / "islands").exists():
         entries = _list_notes_single(coral_dir, island_id, include_raw=include_raw)

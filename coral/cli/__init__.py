@@ -341,7 +341,8 @@ Run 'coral <command> --help' for details on any command."""
             "  coral notes -n 5              Last 5 notes\n"
             "  coral notes --search 'idea'   Search notes\n"
             "  coral notes --status confirmed  Filter by note status\n"
-            "  coral notes --read 3          Read note #3"
+            "  coral notes --read 3          Read note #3\n"
+            "  coral notes --audit           Check recorded experiment evidence"
         ),
         formatter_class=_CommandHelpFormatter,
     )
@@ -358,6 +359,11 @@ Run 'coral <command> --help' for details on any command."""
         "--history", action="store_true", help="Show shared state checkpoint history"
     )
     p_notes.add_argument("--diff", metavar="HASH", help="Show diff for a checkpoint commit")
+    p_notes.add_argument(
+        "--audit",
+        action="store_true",
+        help="Read-only evidence audit (supports --status, --search and -n)",
+    )
     _add_run_args(p_notes)
 
     p_skills = sub.add_parser(
