@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -257,6 +258,25 @@ def test_write_and_read_agent_state_roundtrip(tmp_path: Path) -> None:
     assert restored.agents["agent-1"].pause_count == 3
     # updated_at should have been populated on write.
     assert restored.updated_at != ""
+
+
+def test_write_agent_state_stamps_utc_zulu_timestamp(tmp_path: Path) -> None:
+    """updated_at is an aware-UTC wall-clock reading in Z-suffixed ISO form.
+
+    Guards the datetime.utcnow() -> datetime.now(timezone.utc) migration:
+    the string shape readers see must not change, and the value must be the
+    real UTC time (utcnow() misused with a non-UTC-aware replacement would
+    drift by the local offset).
+    """
+    before = datetime.now(UTC).replace(microsecond=0)
+    write_agent_state(tmp_path / "coral", AgentStateDocument())
+    after = datetime.now(UTC)
+
+    stamp = read_agent_state(tmp_path / "coral").updated_at
+    assert stamp.endswith("Z")
+    assert "+00:00" not in stamp
+    parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    assert before <= parsed <= after
 
 
 def test_read_agent_state_missing_file_returns_empty(tmp_path: Path) -> None:

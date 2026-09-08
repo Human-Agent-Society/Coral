@@ -15,7 +15,7 @@ import json
 import os
 import tempfile
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -110,7 +110,7 @@ def write_agent_state(coral_dir: str | Path, document: AgentStateDocument) -> Pa
     target = state_file_path(coral_dir)
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    document.updated_at = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    document.updated_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
     payload = json.dumps(document.to_dict(), indent=2, sort_keys=True)
 
     fd, tmp_path = tempfile.mkstemp(prefix=".agent_state.", suffix=".tmp", dir=str(target.parent))
