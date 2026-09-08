@@ -24,7 +24,12 @@ class _FakePopen:
     def __init__(self, cmd, **kwargs) -> None:  # type: ignore[no-untyped-def]
         type(self).captured.append({"cmd": list(cmd), "kwargs": dict(kwargs)})
         self.pid = 4242
-        self.returncode: int | None = None
+        # Report an already-exited process. If the fake claims to be alive,
+        # AgentHandle.__del__ SIGKILLs the process group of whatever real
+        # process happens to own pid 4242 on the host, and the AttributeError
+        # from the missing Popen surface aborts cleanup before the runtime's
+        # log handle is closed (ResourceWarning at teardown).
+        self.returncode: int | None = 0
         self.stdout = None
         self.stderr = None
 

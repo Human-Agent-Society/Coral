@@ -11,12 +11,17 @@ from coral.agent.registry import default_model_for_runtime, get_runtime
 class FakeProcess:
     def __init__(self) -> None:
         self.pid = 4321
-        self.returncode = None
+        # Report an already-exited process. If the fake claims to be alive,
+        # AgentHandle.__del__ SIGKILLs the process group of whatever real
+        # process happens to own pid 4321 on the host, and the AttributeError
+        # from the missing Popen surface aborts cleanup before the runtime's
+        # log handle is closed (ResourceWarning at teardown).
+        self.returncode: int | None = 0
         self.stdout = None
         self.stderr = None
 
-    def poll(self) -> None:
-        return None
+    def poll(self) -> int | None:
+        return self.returncode
 
 
 def test_pi_runtime_is_registered() -> None:
