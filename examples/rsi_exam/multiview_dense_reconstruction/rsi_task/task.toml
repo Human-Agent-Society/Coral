@@ -1,0 +1,34 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name = "autoresearch-arena/multiview_dense_reconstruction"
+description = "Register several noisy, partially-overlapping 3D point sets that are not in a common coordinate system -- each view carries an unknown rigid pose relative to the first -- and fuse them, with per-point confidences, into one clean scene cloud, evaluated by a separate sealed verifier. Synthetic point sets only: no images, depth maps, camera poses or intrinsics are supplied, and no VGGT model is run. The task id retains the vggt_ prefix of an abandoned earlier design because rollouts are already published under it; see round1-task/dev/cv/vggt_multiview_dense_reconstruction/ledger/AUTHOR_NOTES.md."
+authors     = [{ name = "Yuanze Lin" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "public"
+cpus       = 2
+memory_mb  = 1024
+storage_mb = 2048
+gpus       = 0
+
+[verifier]
+timeout_sec      = 420.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+cpus       = 1
+memory_mb  = 512
+storage_mb = 2048
+gpus       = 0
+
+[scoring]
+metric = "mean_multithreshold_symmetric_fscore"
+direction = "higher"

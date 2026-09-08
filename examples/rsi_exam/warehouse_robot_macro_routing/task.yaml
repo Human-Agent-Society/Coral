@@ -1,0 +1,116 @@
+task:
+  name: rsi-exam-warehouse_robot_macro_routing
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Program the cleanup robot\
+    \ to sort every ball into its basket\n\nThe office floor is a mess. Balls of every colour are scattered\
+    \ across an\n`N x N` warehouse grid criss-crossed by shelving walls, and each colour has one\nmatching\
+    \ basket somewhere on the floor. You have exactly one robot and one\ncontroller. The robot understands\
+    \ four buttons \u2014 **forward, turn right, turn\nleft, swap** \u2014 and the controller has one\
+    \ more trick: a **macro** you can record\nonce and replay as many times as you like. Every button\
+    \ you press costs you,\nincluding each macro replay, so a clumsy plan that walks the robot back and\
+    \ forth\nracks up a huge tab. Your job is to press the *fewest* buttons that still lands\nevery ball\
+    \ in its own basket before the move budget runs out.\n\nYou control a machine through a macro language;\
+    \ the objective is defined below.\nThe entire difficulty is macro compression: a naive plan is a long\
+    \ string of\n`F/R/L/S`, but the tours the robot repeats (walk-to-cell, drop, walk-back) are\nfull\
+    \ of structure, and a well-designed macro turns hundreds of moves into a\nhandful of pressed buttons.\
+    \ You are scored *relative to a reproduced contest\nrank-1 solver*, so matching a strong human is\
+    \ the bar.\n\n## The machine\n\nThere is an `N x N` grid. Cell `(0,0)` is the top-left; `(i,j)` is\
+    \ `i` cells\ndown and `j` cells right. The outer boundary is walled, and there may be walls\nbetween\
+    \ adjacent interior cells. Every cell is reachable from every other cell\nwithout crossing a wall.\n\
+    \nOn the grid are `M` **balls** and `M` **baskets**. For each type\n`k` (`0 <= k < M`) there is exactly\
+    \ one ball of type `k` and one basket of type\n`k`. Initially each cell holds at most one ball or\
+    \ basket.\n\nThe robot starts at `(0,0)` **facing right**, holding nothing. You control it\nwith a\
+    \ sequence of buttons:\n\n**Basic buttons**\n\n- `F` (forward): move one cell in the current facing.\
+    \ If a wall blocks the\n  destination, the robot stays put (the button is still spent).\n- `R` (turn\
+    \ right): rotate 90\xB0 clockwise in place.\n- `L` (turn left): rotate 90\xB0 counter-clockwise in\
+    \ place.\n- `S` (swap): exchange the ball in hand with the ball on the current cell.\n  - empty hand\
+    \ + ball here -> pick it up (cell becomes empty);\n  - ball in hand + empty cell -> drop it (hand\
+    \ becomes empty);\n  - ball in hand + ball here -> swap the two;\n  - empty hand + empty cell -> nothing\
+    \ happens.\n  - A ball sitting on a basket cell is swapped just like any other ball.\n\n**Controller\
+    \ buttons**\n\n- `M` (macro): if not currently recording, start recording. If currently\n  recording,\
+    \ stop and **register** the recorded sequence as *the* macro\n  (replacing any previous one).\n- `P`\
+    \ (play): replay the **most recently registered** macro. If none is\n  registered yet, nothing happens.\n\
+    \nWhile recording, any basic `F/R/L/S` you press is both executed *and* appended\nto the macro being\
+    \ recorded. A `P` pressed while recording replays the\npreviously registered macro, and the basic\
+    \ operations it expands to are executed\n*and* appended to the macro being recorded (you cannot replay\
+    \ the macro you are\ncurrently recording \u2014 only the last completed one).\n\n> Example: with `RFF`\
+    \ already registered, running `MFPM` records a new macro.\n> `M` starts recording; `F` executes+records;\
+    \ `P` replays the registered `RFF`\n> (executed and appended); `M` stops. The basic ops executed are\
+    \ `FRFF`, and the\n> newly registered macro is `FRFF`.\n\nInitially no macro is registered and nothing\
+    \ is being recorded.\n\n## Budget and scoring\n\nYou are given a basic-operation cap `T`. **After\
+    \ macro expansion**, at most `T`\nbasic operations are executed; the `T+1`-th basic operation is not\
+    \ executed and\nthe run is cut off there. So `P` is cheap to *press* but its expansion is\ncharged\
+    \ against `T`.\n\nLet `A` be the length of the button sequence you output \u2014 **`M` and `P` each\n\
+    count as one button**. Let `V` be the number of balls sitting on their matching\nbasket at the end\
+    \ of the simulation. The absolute score for a case is:\n\n- `A` if `V == M` (all balls delivered)\
+    \ \u2014 **lower is better**;\n- `T * (M - V)` if `V < M` (a big penalty).\n\nYou are scored on the\
+    \ **absolute score of each case \u2014 lower is better**. A reproduced\ncontest rank-1 solver's per-case\
+    \ scores ship with the task so you can gauge how strong\nyour solution is, but **how the raw scores\
+    \ map to the final reward is deliberately not\ndisclosed**. Optimise the raw score itself.\n\nClosing\
+    \ the gap to a top contest solver is almost entirely about better macro synthesis.\n\n## Input format\
+    \ (stdin, one instance)\n\n```\nN M T\nv_0\n...\nv_{N-1}        # N lines: v_i is a length-(N-1) 01\
+    \ string; v_i[j]=1 <=> wall between (i,j) and (i,j+1)\nh_0\n...\nh_{N-2}        # N-1 lines: h_i is\
+    \ a length-N 01 string; h_i[j]=1 <=> wall between (i,j) and (i+1,j)\nb_0 c_0 d_0 e_0\n...\nb_{M-1}\
+    \ c_{M-1} d_{M-1} e_{M-1}   # ball k starts at (b_k,c_k); basket k is at (d_k,e_k)\n```\n\nConstraints:\
+    \ `10 <= N <= 20`, `N/2 <= M <= 2N`, `1 <= T <= 2 N^2 M`. All ball\nand basket cells are distinct.\n\
+    \n## Output format (stdout)\n\nPrint the button sequence, one character per line **or** all on lines\
+    \ with no\nspaces \u2014 any whitespace layout is fine; only the characters `F R L S M P` are\nread,\
+    \ in order. The output length `A` must be `<= T`.\n\n## What you submit\n\nYour solver lives in `methods/main/`\
+    \ (the graded directory), containing:\n\n- **`run.sh`** (required): run once per test case as\n  `bash\
+    \ run.sh < instance.txt > out.txt`. It must read one instance on stdin and\n  write the button sequence\
+    \ on stdout. Any language.\n- **`build.sh`** (optional): if present, the grader runs it **once** before\n\
+    \  grading (e.g. to compile a C++ solver). Do your compilation here and have\n  `run.sh` exec the\
+    \ built binary.\n\nThe starter `methods/main/run.sh` runs the shipped greedy baseline\n(`methods/main/solution.py`).\
+    \ Replace it with your solver.\n\n## Local dev bench\n\n- `tools/in/` \u2014 the 100 visible instances\
+    \ (seeds 0-99).\n- `tools/gen` \u2014 the **official generator**. Make more instances with\n  `./tools/gen\
+    \ seeds.txt --dir=OUTDIR` where `seeds.txt` is one unsigned-64-bit\n  seed per line. **For local testing\
+    \ use seeds in `0..10000` only** \u2014 the sealed\n  grading seeds live far outside that range, so\
+    \ staying inside it keeps your\n  practice set from colliding with the hidden set.\n- `tools/vis`\
+    \ \u2014 the **official visualiser/judge**: `./tools/vis in.txt out.txt`\n  prints `Score = <absolute\
+    \ score>` and writes a `vis.html` you can open.\n- `python3 selfcheck.py [N]` \u2014 runs your `run.sh`\
+    \ on the first `N` visible cases\n  (default 100), prints each case's raw score alongside the reference\
+    \ solver's raw\n  score on the same case. Free and unlimited.\n\nThe generator, the distribution,\
+    \ and the visualiser are exactly the contest's.\nThe sealed evaluation reruns your `run.sh` on 200\
+    \ fresh sealed instances from the\nsame generator and scores them with the same visualiser; there\
+    \ is no feedback\nloop \u2014 whatever sits in `methods/main/` at the end is what is graded.\n\n##\
+    \ Notes\n\n- CPU only, no network. Python 3 and `g++` are available in both the workbench\n  and the\
+    \ grader.\n- Each sealed case runs your `run.sh` under a wall-clock cap (20 s/case); a\n  crash, timeout,\
+    \ malformed output, or a case that fails to deliver all balls\n  scores that case's `rel` at ~0. Complete\
+    \ every case first, then optimise\n  length.\n- The reference contest was a 2-second-per-case time\
+    \ limit; you have more slack\n  here, but the aggregate is dominated by macro *quality*, not raw search\
+    \ time.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 8100
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/warehouse_robot_macro_routing/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

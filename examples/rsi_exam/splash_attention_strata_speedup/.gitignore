@@ -1,0 +1,5 @@
+/rsi_task/environment/data/visible_strata.json
+/seed/harbor/environment/data/visible_strata.json
+/rsi_task/tests/anchors.json
+/rsi_task/tests/baseline_manifest.json
+/rsi_task/tests/heldout_strata.json

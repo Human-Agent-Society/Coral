@@ -1,0 +1,5 @@
+.rsi_runs/
+.venv/
+__pycache__/
+*.pyc
+data/

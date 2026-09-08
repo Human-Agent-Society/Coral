@@ -1,0 +1,15 @@
+services:
+  main:
+    security_opt: [seccomp=unconfined]
+    shm_size: "32gb"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "${HARBOR_GPU_DEVICE:-0}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_VISIBLE_DEVICES: "0"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE:-0}"]
+              capabilities: [gpu]

@@ -1,0 +1,30 @@
+schema_version = "1.0"
+
+[task]
+name = "autoresearch-arena/tidal_friction_inverse"
+description = "Estimate a heterogeneous seabed friction field from sparse tide gauges and generalize to sealed gauges."
+authors = [{ name = "wang" }]
+
+[environment]
+cpus       = 2
+memory_mb  = 12288
+storage_mb = 10240
+build_timeout_sec = 900
+network_mode = "public"
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+[verifier]
+timeout_sec = 1200
+environment_mode = "separate"
+
+[verifier.environment]
+build_timeout_sec = 900
+network_mode = "no-network"
+
+[verifier.env]
+
+[[artifacts]]
+source = "/app/methods/main/solver.py"
+destination = "methods/main/solver.py"

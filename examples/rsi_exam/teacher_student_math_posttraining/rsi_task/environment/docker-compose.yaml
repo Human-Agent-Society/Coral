@@ -1,0 +1,41 @@
+services:
+  main:
+    cap_add: [SYS_ADMIN, NET_ADMIN, SYS_PTRACE]
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
+    environment:
+      ARA_CODEX_RUNTIME_UID: "61124"
+      ARA_CODEX_RUNTIME_GID: "61124"
+      ARA_CODEX_RUNTIME_HOME: "/home/ara-codex"
+      ARA_CODEX_SCRUB_AUTH_AFTER_START: "1"
+      NVIDIA_VISIBLE_DEVICES: "${HARBOR_GPU_DEVICE_0:-0},${HARBOR_GPU_DEVICE_1:-1}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_VISIBLE_DEVICES: "0,1"
+    volumes:
+      - math-visible-socket:/app/.visible-evaluator:ro
+    depends_on:
+      visible-evaluator:
+        condition: service_healthy
+    shm_size: "64gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE_0:-0}", "${HARBOR_GPU_DEVICE_1:-1}"]
+              capabilities: [gpu]
+
+  visible-evaluator:
+    build:
+      context: .
+      dockerfile: evaluator/Dockerfile
+    network_mode: "none"
+    volumes:
+      - math-visible-socket:/run/math-visible
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pathlib,stat; p=pathlib.Path('/run/math-visible/evaluator.sock'); raise SystemExit(0 if p.exists() and stat.S_ISSOCK(p.stat().st_mode) else 1)"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+
+volumes:
+  math-visible-socket:

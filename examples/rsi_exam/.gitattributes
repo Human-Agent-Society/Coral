@@ -1,0 +1,11 @@
+# Preserve pinned upstream bytes, including original whitespace.
+# Keep hand-written integration code prominent in GitHub reviews.
+*/rsi_task/** linguist-vendored=true -whitespace
+*/seed/** linguist-vendored=true -whitespace
+*/grader/** linguist-generated=true
+*/seed/rsi_runtime.py -linguist-vendored linguist-generated=true !whitespace
+*/seed/rsi_contract.py -linguist-vendored linguist-generated=true !whitespace
+*/seed/qlib_docker.py -linguist-vendored linguist-generated=true !whitespace
+*/seed/setup_visible.py -linguist-vendored !whitespace
+*/seed/pyproject.toml -linguist-vendored !whitespace
+*/UPSTREAM.json linguist-generated=true

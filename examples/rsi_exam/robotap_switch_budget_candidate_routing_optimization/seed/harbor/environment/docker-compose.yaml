@@ -1,0 +1,12 @@
+services:
+  main:
+    cap_add: [SYS_ADMIN, NET_ADMIN, SYS_PTRACE]
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
+    environment:
+      ARA_CODEX_RUNTIME_UID: "61124"
+      ARA_CODEX_RUNTIME_GID: "61124"
+      ARA_CODEX_RUNTIME_HOME: "/home/ara-codex"
+      ARA_CODEX_SCRUB_AUTH_AFTER_START: "1"
+      NVIDIA_VISIBLE_DEVICES: "void"
+      CUDA_VISIBLE_DEVICES: ""
+    shm_size: "512mb"

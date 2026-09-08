@@ -1,0 +1,17 @@
+[
+  {
+    "path": "environment/visible_ids.npy",
+    "size": 4128,
+    "sha256": "df42c2b557a1164b7097209f42cf20c814220f1ade1fa89d66c2cc5a9e5288b4"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 127,
+    "git_blob_sha1": "f853910d35f074873cb3eb04699cb5f5cfaae748"
+  },
+  {
+    "path": "tests/hidden_ids.npy",
+    "size": 12128,
+    "sha256": "6353e99921880a14060686c734b2639648e686422bd16dd2a4d917bd7ccdc907"
+  }
+]

@@ -1,0 +1,84 @@
+task:
+  name: rsi-exam-bigann_filtered_vector_search
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Filtered nearest-neighbour\
+    \ search at 10M scale\n\nA photo library holds **10,000,000 images**. Each is a 192-dimensional `uint8`\
+    \ embedding plus a set\nof metadata tags (uploader, camera, place, year, and so on). A query arrives\
+    \ as an embedding plus a\n**tag predicate**: one or two tags. An image is a valid answer only if its\
+    \ tag set **contains every\ntag in the predicate**. Among the valid images, return the **10 nearest**\
+    \ by squared L2 distance.\nYour job is to make that fast.\n\n## Hard Constraints\n\n- Edit `/app/methods/main/solver.py`\
+    \ in place. `/app/methods/main/` is what gets graded.\n- Keep the exact `Solver` class contract below.\
+    \ `build()` is called once, then `search_batch()`\n  is called **once** with the entire workload;\
+    \ the row order of what `search_batch()` returns must\n  match the query order.\n- Answers must satisfy\
+    \ the predicate: an image counts only if its tag set contains every tag in\n  the query's predicate.\n\
+    - `build()` may use every core. Before the timed call every thread of the process is pinned to\n \
+    \ **one CPU** (`sched_setaffinity`, applied to each existing thread and inherited by any created\n\
+    \  later), so search throughput cannot be bought with parallelism.\n- There is no network at run time:\
+    \ whatever you use has to be already installed or written here.\n  `pip list` and the image's package\
+    \ manifest are the authoritative record of what is available.\n\n## What You Have\n\n`/app/data/`\
+    \ holds the library in its published binary form:\n\n| file | contents |\n|---|---|\n| `base.10M.u8bin`\
+    \ | `int32 n`, `int32 d`, then `n*d` raw bytes -- the `[10000000, 192]` uint8 matrix |\n| `base.metadata.10M.spmat`\
+    \ | `int64 nrow, ncol, nnz`, then `int64 indptr[nrow+1]`, then `int32 indices[nnz]` -- the tag sets\
+    \ as CSR |\n| `query_vectors.npy` | 500 visible queries, uint8 `[500, 192]` |\n| `query_tag_indptr.npy`,\
+    \ `query_tag_indices.npy` | the visible queries' predicates, same CSR convention |\n| `ground_truth.npy`\
+    \ | the correct top-10 row ids for each visible query, `int32 [500, 10]` |\n\n`ann_utils.py` (next\
+    \ to your solver) has readers for both binary formats, the tag predicate, a\nsquared-L2 helper, an\
+    \ inverted-index builder and a plain k-means IVF index. All of it is yours to\nuse, rewrite or delete.\n\
+    \n`base_vectors` is memory-mapped. The container has 32 GB of RAM.\n\nRun `python /app/selfcheck.py`\
+    \ to get your own recall@10 and QPS on the visible queries under the\nsame protocol as the grader,\
+    \ including the one-CPU pinning. It reports the raw metrics only.\n\n## What You Submit\n\nLeave your\
+    \ best implementation in `/app/methods/main/solver.py`, exposing exactly:\n\n```python\nclass Solver:\n\
+    \    def build(self, base_vectors, tag_indptr, tag_indices):\n        \"\"\"Called once, before search_batch().\
+    \ Untimed, and free to use every core.\n        base_vectors : uint8 memmap [10000000, 192]\n    \
+    \    tag_indptr   : int64 [10000001]   CSR row pointers\n        tag_indices  : int32 [108210476]\
+    \  row i carries tags tag_indices[indptr[i]:indptr[i+1]]\n        \"\"\"\n\n    def search_batch(self,\
+    \ query_vectors, query_tag_indptr, query_tag_indices, k=10):\n        \"\"\"Called ONCE with the entire\
+    \ workload. This call is what gets timed.\n        query_vectors    : uint8 [n, 192]\n        query_tag_indptr\
+    \ : int64 [n + 1]    same CSR convention as the library's tags\n        query_tag_indices: int32 [nnz]\
+    \      query i has tags indices[indptr[i]:indptr[i+1]]\n        returns          : [n, k] library\
+    \ row indices; row order must match the queries,\n                           order within a row does\
+    \ not matter\n        \"\"\"\n```\n\nThere is no submit step and no per-attempt feedback. Work and\
+    \ self-check for as long as your run\nwindow allows, then leave your best `solver.py` in place.\n\n\
+    ## How It Is Judged\n\nTwo numbers, both computed on a **sealed query workload you never see** \u2014\
+    \ a different, larger\nsample from the same source as your visible queries:\n\n- **recall@10** against\
+    \ the official ground truth, averaged over the hidden queries. This is a\n  **gate**: below **0.90**\
+    \ the submission scores zero no matter how fast it is.\n- **QPS** = hidden query count divided by\
+    \ the wall-clock seconds of the single `search_batch()`\n  call. `build()` is not counted and has\
+    \ its own, generous, budget.\n\nYour score rises monotonically with QPS once the gate is met, and\
+    \ is not capped at the top.\nThe starter as shipped is the zero of that scale: submitted unchanged\
+    \ it scores 0.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 18900
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/bigann_filtered_vector_search/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

@@ -1,0 +1,71 @@
+task:
+  name: rsi-exam-game2048_policy_search
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# 2048 Strategy\n\nYou\
+    \ inherit a weak Python policy that plays deterministic seeded 2048 games. Improve\nthe policy using\
+    \ repeated experiments on the public seed suite; your submitted policy\nis replayed from scratch on\
+    \ sealed seeds from the same generator for scoring.\n\n## Hard Constraints\n\n- Edit `methods/main/policy.py`;\
+    \ it must define `choose_move(board)` and return one of\n  `\"UP\"`, `\"DOWN\"`, `\"LEFT\"`, or `\"\
+    RIGHT\"`.\n- `board` is a tuple of four tuples containing tile values, with zero for an empty cell.\n\
+    - The policy may use only Python's standard library and must be deterministic for a\n  given board.\n\
+    - `methods/main/policy.py` must not exceed **10 MB**. Learned weights are allowed within\n  that budget\
+    \ \u2014 embed them in the file, since nothing outside `methods/main/` is available at\n  grading\
+    \ time. `selfcheck.py` enforces the cap, and so does the grader; an oversized file\n  scores zero.\n\
+    - Do not modify `game2048.py`, `evaluate.py`, `selfcheck.py`, or the public seed file.\n- **CPU budget:\
+    \ 225 seconds of CPU per game**, enforced as one pooled limit across the whole\n  sealed suite by\
+    \ a single policy process. Spend it unevenly if you like, but exhausting the\n  pool kills the process,\
+    \ and every game not yet played then scores zero. `selfcheck.py`\n  applies the same per-game budget\
+    \ to the public suite and reports `cpu_seconds_per_game`.\n- A single move must return within 5 seconds.\n\
+    - A callback error, illegal return value, or per-move timeout ends that game.\n- The final policy\
+    \ must be self-contained in `methods/main/` and must not use files,\n  subprocesses, network access,\
+    \ clocks, environment variables, or randomness.\n\n## What You Have\n\n- `methods/main/policy.py`:\
+    \ the weak starting policy.\n- `game2048.py`: the exact game rules, move order, tile spawning, and\
+    \ raw score logic.\n- `evaluate.py`: the public evaluation harness.\n- `visible_seeds.json`: the fixed\
+    \ public games used for comparable development scores.\n- `selfcheck.py`: runs the current policy\
+    \ on every public game and reports mean raw\n  game score, median score, maximum tile, and per-seed\
+    \ results.\n- `methods/experiment_log.md`: record each comparable attempt and whether it was kept\n\
+    \  or reverted. Save evaluated policy snapshots and results under\n  `methods/versions/vN/`.\n\n##\
+    \ What You Submit\n\nSubmit the complete `methods/` directory. The selected policy must be located\
+    \ at\n`methods/main/policy.py`; experiment history and notes may remain under `methods/`.\n\n## How\
+    \ It Is Judged\n\nEach game starts with two spawned tiles and follows standard 4-by-4 2048 merge rules.\n\
+    After every legal move, a 2 tile is spawned with probability 0.9 and a 4 tile with\nprobability 0.1.\
+    \ The raw metric is the arithmetic mean of the standard merge score\nover the seed suite, and higher\
+    \ is better. The normalized score is a monotonic function of sealed\ngame performance and is not shown\
+    \ to you; optimize raw score and cross-seed generalization.\n\nThe hidden seeds are disjoint from\
+    \ the public seeds but use the identical simulator,\nspawn distribution, board size, move budget,\
+    \ and scoring code.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 7500
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/game2048_policy_search/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

@@ -1,0 +1,9 @@
+Dockerfile.evaluator
+Dockerfile.evaluator.dockerignore
+README.md
+evaluator_data/
+requirements.evaluator.txt
+visible_server.py
+docker-compose*.yaml
+**/__pycache__/
+**/*.pyc

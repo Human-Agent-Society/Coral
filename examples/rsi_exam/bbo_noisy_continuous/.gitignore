@@ -1,0 +1,7 @@
+/rsi_task/environment/data/visible.json
+/seed/harbor/environment/data/visible.json
+/rsi_task/tests/heldout/frozen_anchors.json
+/rsi_task/tests/heldout/hidden_data.json
+/rsi_task/tests/heldout/oracle_provenance.json
+/rsi_task/tests/heldout/oracle_values.json
+/rsi_task/tests/heldout/source_frozen_anchors.json

@@ -1,0 +1,16 @@
+# Verifier: inference only, one card. Same rules as environment/docker-compose.yaml --
+# no networks/network_mode here either.
+services:
+  main:
+    shm_size: "32gb"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "${HARBOR_GPU_A:?set HARBOR_GPU_A}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_VISIBLE_DEVICES: "0"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_A:?set HARBOR_GPU_A}"]
+              capabilities: [gpu]

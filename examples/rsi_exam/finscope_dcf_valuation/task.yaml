@@ -1,0 +1,109 @@
+task:
+  name: rsi-exam-finscope_dcf_valuation
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# FinScope coverage desk\
+    \ \u2014 forward value-driver model\n\nYou have inherited a buy-side equity-research desk's **intrinsic-value\
+    \ model**. The desk\nvalues companies with a fixed, trusted discounted-cash-flow (DCF) engine that\
+    \ turns a set of\n**forward value-drivers** into a per-share value; the open problem is **forecasting\
+    \ those\ndrivers** for every name in the coverage universe. You inherit a deliberately weak first-pass\n\
+    model (a sector-reversion blend) plus a second weak stab and a few notes \u2014 improve one or write\n\
+    a better method. Your forecaster is re-run on a **sealed held-out universe** whose true drivers\n\
+    you never see, and scored by how close the DCF values it implies land to the truth: lower error\n\
+    is better.\n\n## Hard Constraints\n\n- Submit an **algorithm** (`solve(problem)`), not precomputed\
+    \ drivers \u2014 the grader re-runs your\n  code on hidden companies.\n- Keep the exact signature\
+    \ `solve(problem) -> {company_id: drivers}`, returning a record for\n  **every** id in `problem.holdout_ids`\
+    \ and **no others**.\n- Each `drivers` record must be well-formed and in range: `rev_growth`, `ebit_margin`,\n\
+    \  `reinvest` are 5-element lists; `wacc` and `terminal_growth` are scalars; and\n  `terminal_growth\
+    \ < wacc` (the Gordon terminal requires it). A malformed / out-of-range /\n  wrong-id-set submission\
+    \ scores 0.\n- `solve` is handed a `problem` object; it must **not** read data files or look up answers\
+    \ \u2014 the\n  held-out truth is sealed in the grader and there is no network at grade time.\n- **Grading\
+    \ budget** (stated so you can size your method). Your `solve` is run\n  **once**, in a fresh subprocess\
+    \ capped at a **1200 s** wall-clock budget, inside a container\n  declared at **2 CPUs / 512 MiB**;\
+    \ the whole verifier stage is capped\n  at **3600 s**. Your own agent container is the same size (2\
+    \ CPUs / 512 MiB). Relative to your\n  own self-check the grading side is **about 0.1x the wall clock**\
+    \ (measured end-to-end at\n  2 CPUs / 512 MiB: 4.85 s of `fit_calibration.py` versus ~0.5 s for the\
+    \ whole grading stage) \u2014\n  grading is *cheaper* because the self-check refits your method 60\
+    \ times (leave-one-out over\n  the 60 calibration names) while grading calls `solve` exactly once.\
+    \ Do not read that as\n  slack in the other direction: that single call must produce drivers for **4x\
+    \ as many\n  companies** (240 held-out versus 60 calibration names), so a method whose cost grows\
+    \ with the\n  universe size sees 4x the work in one shot. A run killed by the time or memory cap produces\n\
+    \  no drivers and scores 0; the grader records the timeout and the subprocess's exit status\n  separately\
+    \ from \"produced no output\", so both show up in the run log.\n\n## What You Have\n\n- The workspace\
+    \ `/app/` as your predecessor left it (`/app/README.md` orients you):\n  - Data (`/app/data/`): `coverage.csv`\
+    \ (per-company as-of facts + metadata), `fundamentals.csv`\n    (the **messy** observable per-year\
+    \ history), `calibration_truth.csv` (realized drivers + true\n    value for the **calibration** names\
+    \ only), and `data_dictionary.md`. **Read the dictionary** \u2014\n    histories vary in length, cells\
+    \ are missing (MNAR), some fiscal years carry one-off\n    `special_items`, and `sector` / `beta_proxy`\
+    \ are sometimes blank; how you treat the mess is a\n    large part of the task.\n  - The public DCF\
+    \ bridge (`/app/lib/`): `valuation.py` / `fin_compute_engine.py` value a driver\n    record with the\
+    \ *same* mechanics the grader uses (you may import them for your own checks);\n    `paneldata.py`\
+    \ builds the `problem` object.\n  - The editable baselines (`/app/methods/`): `main/forecaster.py`\
+    \ \u2014 **this directory is what gets\n    graded** \u2014 is a weak sector-reversion blend; `own_history_trend/`\
+    \ is a second, different weak\n    stab. Improve one in place, or rewrite the method entirely.\n-\
+    \ **Your self-check surface** (free, unlimited): `python /app/fit_calibration.py /app/methods/main`\n\
+    \  refits your method leave-one-out over the visible calibration names \u2014 fit on the other 59,\
+    \ forecast\n  the one held back, rotated over all 60 \u2014 and reports the median absolute out-of-sample\
+    \ valuation\n  error. Pass `--kfold K` to spend K fits instead of 60 if your method is slow. This\
+    \ matches the\n  grading regime, where your method fits on *all* visible calibration truth before\
+    \ forecasting the\n  sealed names. This is your *only* feedback loop, and it is a **proxy**: the sealed\
+    \ grade\n  is on other companies, so a low calibration error is necessary but not sufficient.\n\n\
+    ## What You Submit\n\nEdit `/app/methods/main/forecaster.py` to expose this exact signature:\n\n```python\n\
+    def solve(problem) -> dict:   # {company_id: drivers} for every id in problem.holdout_ids\n```\n\n\
+    where each `drivers` record is:\n\n```python\n{\"rev_growth\": [g1, g2, g3, g4, g5],   # revenue growth\
+    \ per year (0.12 = +12%)\n \"ebit_margin\": [m1, m2, m3, m4, m5],  # EBIT margin per year    (0.25\
+    \ = 25%)\n \"reinvest\":    [r1, r2, r3, r4, r5],  # reinvestment as a fraction of NOPAT, in [0,1)\n\
+    \ \"wacc\": 0.09,                         # discount rate, in (0,1)\n \"terminal_growth\": 0.025}\
+    \             # long-run growth; MUST be < wacc\n```\n\n`problem` exposes `holdout_ids`, `load_companies()`\
+    \ (each a dict with `id` / `set` / `sector` /\n`beta_proxy` / `facts` / `history` / `ipo_year` / \u2026\
+    ), `companies_by_id()`, and\n`load_calibration_truth()` (realized drivers + true value for the calibration\
+    \ names \u2014 your\nfitting data). You may add helper modules next to `forecaster.py` or restructure\
+    \ the method\nentirely; the whole `methods/main/` directory runs. The runtime provides `numpy`. **There\
+    \ is no\nsubmit step and no per-attempt feedback** \u2014 self-check for as long as your run window\
+    \ allows, then\nleave your best `forecaster.py` in place; it is graded once at the end on the hidden\
+    \ universe.\n\n## How It Is Judged\n\nAfter your run, the grader runs your `solve` on the sealed held-out\
+    \ companies' **observable**\npanel (no truth), then recomputes \u2014 with its own sealed engine \u2014\
+    \ each company's intrinsic value\n`V_hat` from your drivers and the perfect-foresight value `V*` from\
+    \ its hidden realized drivers,\nand scores the panel **median absolute valuation error**:\n\n```\n\
+    MAVE = median over a sealed TEST subset of the holdout companies of\n           |V_hat - V*| / V*\
+    \                                        (per-company error capped at 2.0)\n```\n\nYou must still\
+    \ return a record for **every** id in `holdout_ids` \u2014 a missing (or extra) id is a\nstructural\
+    \ violation and scores 0 \u2014 but only the sealed `test` tier counts toward the reward; the\nrest\
+    \ is a held-back `dev` tier you never see the composition of. So you cannot tune to the graded\nsubset,\
+    \ and a solver that works on only part of the universe is not safe.\n\nThe metric is **MAVE (lower\
+    \ is better)**; push it as low as you can. Only the submitted *drivers*\nare trusted \u2014 both `V_hat`\
+    \ and `V*` are recomputed by the grader's engine, so a reported value\ncannot be gamed.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 8100
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/finscope_dcf_valuation/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

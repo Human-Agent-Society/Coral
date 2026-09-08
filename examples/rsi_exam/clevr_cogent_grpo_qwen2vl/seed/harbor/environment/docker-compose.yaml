@@ -1,0 +1,17 @@
+# harbor's local docker backend has capabilities.gpus = False, so [environment].gpus
+# raises; the cards come in here instead. Never declare networks/network_mode --
+# harbor would skip egress control for main and the task would run on a bare network.
+services:
+  main:
+    shm_size: "32gb"          # NCCL + dataloader workers; the 64MB default stalls training
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "${HARBOR_GPU_A:?set HARBOR_GPU_A},${HARBOR_GPU_B:?set HARBOR_GPU_B}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_VISIBLE_DEVICES: "0,1"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_A:?set HARBOR_GPU_A}", "${HARBOR_GPU_B:?set HARBOR_GPU_B}"]
+              capabilities: [gpu]

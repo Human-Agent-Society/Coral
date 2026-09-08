@@ -1,0 +1,9 @@
+/rsi_task/environment/problems/visible_baseline_manifest.json
+/seed/harbor/environment/problems/visible_baseline_manifest.json
+/rsi_task/environment/problems/visible_cases.json
+/seed/harbor/environment/problems/visible_cases.json
+/rsi_task/tests/anchor_inputs.json
+/rsi_task/tests/anchors.json
+/rsi_task/tests/guard_tokens.json
+/rsi_task/tests/heldout/baseline_manifest.json
+/rsi_task/tests/heldout/test_spec.json

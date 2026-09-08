@@ -1,0 +1,4 @@
+Dockerfile.evaluator
+README.md
+**/__pycache__/
+**/*.pyc

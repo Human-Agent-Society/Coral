@@ -1,0 +1,22 @@
+[
+  {
+    "path": "environment/data/visible_strata.json",
+    "size": 1302,
+    "git_blob_sha1": "65b5f7a87f7733260492aaf26713a85fab27c970"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 850,
+    "git_blob_sha1": "eda6e468b8d083e146fc923fd780ad9a9d680982"
+  },
+  {
+    "path": "tests/baseline_manifest.json",
+    "size": 1173,
+    "git_blob_sha1": "0114451d19148dfcdf1c8b848acdd6aa1a9b2245"
+  },
+  {
+    "path": "tests/heldout_strata.json",
+    "size": 1688,
+    "git_blob_sha1": "1fb309540d54b19ee6399020581a23be542b489c"
+  }
+]

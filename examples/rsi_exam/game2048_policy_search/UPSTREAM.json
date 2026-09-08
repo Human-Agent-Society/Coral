@@ -1,0 +1,36 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "game2048_policy_search",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/game2048_policy_search",
+  "sha256": {
+    "environment/.dockerignore": "05cc6ae53cfd6129f1d7010aa874c6cf0a6019b1adfeff3f4fab27f2d04f43ca",
+    "environment/Dockerfile": "8223cc530cac98dc963fd4c5588f72443b88387e9b4ac9159e90350cf4dd21a8",
+    "environment/docker-compose.yaml": "56eb948262cd95bd8ebeb2b962810036a2137a166ee8ac30fc0e065f8a11763c",
+    "environment/evaluate.py": "642d194eab0c4f1e116a70d7d78d8b5e13197cbfb92e0d6a09dbba6c2a494c86",
+    "environment/game2048.py": "3c1059f3a26b5d5ee014ae51f19147e05a31ddf60fd7d371a48e7c4101cef077",
+    "environment/methods/main/policy.py": "10c743af480c9274bb547a5a77000d0477836dfb951e0e99b0889a7181eb1e64",
+    "environment/selfcheck.py": "c1a685d99b95a1f51dd71c9ec0341b45e0323f49960443dfd8621a18aa42103f",
+    "instruction.md": "d6b38c720096a5cff4e48521d9f8c9da2d9732b7581909ff1ac7c689c7eaf79e",
+    "task.toml": "171ecca525981b3291836be390244c8ce021fd68805f894861d64bf856df3b29",
+    "tests/.dockerignore": "05cc6ae53cfd6129f1d7010aa874c6cf0a6019b1adfeff3f4fab27f2d04f43ca",
+    "tests/Dockerfile": "81c8d7ddf570b082c89da712d9348e92ffc0988573fe9a2876243c0654b5bf5b",
+    "tests/evaluate.py": "ca3c3184a1969bd50fb3eb19f201c97da8fffb58e345452641783e2db0702525",
+    "tests/game2048.py": "fd695f03f768cd6bc04612f48b9c5f3837cfa0e1470305e3a744d5c7a00422e2",
+    "tests/grade.py": "a1b9373bc98b9c36edda73461f7283e5e21c99a66608a5abe1365890c286a075",
+    "tests/policy_sandbox.py": "0bc732ea8c1cbf24f26238cb154949a9142301b7e1a25ae6a7e39a3d94a5bd22",
+    "tests/test.sh": "b198b9174220d16c8f36ae751905fb7afddf5ba765dddc4763d225d0a55525f0"
+  },
+  "downloads": [
+    {
+      "path": "environment/visible_seeds.json",
+      "size": 102,
+      "git_blob_sha1": "1f73a9173e161eb8e9a7fe88b8ed63a106794baf"
+    },
+    {
+      "path": "tests/heldout_seeds.json",
+      "size": 994,
+      "git_blob_sha1": "c962c6d28adc142e725a1bb44df76668393bbf1a"
+    }
+  ]
+}

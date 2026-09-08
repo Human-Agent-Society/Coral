@@ -1,0 +1,6 @@
+/rsi_task/environment/data/assessment/records.json
+/seed/harbor/environment/data/assessment/records.json
+/rsi_task/environment/data/practice/instances.json
+/seed/harbor/environment/data/practice/instances.json
+/rsi_task/tests/anchors.json
+/rsi_task/tests/heldout/instances_sealed.json

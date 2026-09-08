@@ -1,0 +1,6 @@
+services:
+  main:
+    # Codex uses a user-namespace sandbox inside the Harbor agent container.
+    # Docker's default seccomp profile blocks that path on this runner.
+    security_opt:
+      - seccomp=unconfined

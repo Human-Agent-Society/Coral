@@ -1,0 +1,12 @@
+[
+  {
+    "path": "environment/data/visible.jsonl",
+    "size": 26581,
+    "git_blob_sha1": "c985cd4e007517cdc91692ade0b4aa518cf78d51"
+  },
+  {
+    "path": "tests/heldout/test.jsonl",
+    "size": 19331,
+    "git_blob_sha1": "08c8eaac7d582b3f7a0c370d20f2400c98044b03"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "path": "environment/data/visible.json",
+    "size": 164934,
+    "git_blob_sha1": "dd63cd2160797c1221a2308a9a6b9ca2709957d1"
+  },
+  {
+    "path": "tests/heldout/frozen_anchors.json",
+    "size": 61886,
+    "git_blob_sha1": "7e96431bb1cd3f3fdc76c6732a3f1807647e6286"
+  },
+  {
+    "path": "tests/heldout/hidden_data.json",
+    "size": 274944,
+    "git_blob_sha1": "47486da8b3e63dc5d56d13d21adb1c3a4a666fa5"
+  },
+  {
+    "path": "tests/heldout/oracle_provenance.json",
+    "size": 641,
+    "git_blob_sha1": "aff16149e7d3de85823e8ea7a32c1dc398ba5417"
+  },
+  {
+    "path": "tests/heldout/oracle_values.json",
+    "size": 684,
+    "git_blob_sha1": "13fe31ec9550eb1ea0817fdfa069b9c6490720d5"
+  },
+  {
+    "path": "tests/heldout/source_frozen_anchors.json",
+    "size": 95410,
+    "git_blob_sha1": "9787137afa036bfb1da68639809094c575cb5aa2"
+  }
+]

@@ -1,0 +1,32 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name        = "autoresearch-arena/feeder_phase_impedance_inversion_v1"
+description = "Distribution-feeder model calibration before hosting-capacity studies: submit a method that jointly repairs per-customer phase labels, per-segment conductor impedances and the regulator tap from magnitude-only AMI archives plus head SCADA; a sealed evaluation re-runs it on a larger fleet of unseen feeders drawn from the same population as the practice fleet (with a hard-end-weighted subset) and scores phase accuracy, path-impedance recovery and tap error."
+authors     = [{ name = "kaiwen xiong" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 1800.0
+network_mode = "public"
+cpus       = 2
+memory_mb  = 1024
+storage_mb = 4096
+gpus       = 0
+
+[verifier]
+timeout_sec      = 10800.0
+environment_mode = "separate"
+cpus             = 2
+memory_mb        = 512
+
+[verifier.environment]
+network_mode = "no-network"
+
+[scoring]
+metric = "sealed_fleet_mean_calibration_score"
+direction = "higher"

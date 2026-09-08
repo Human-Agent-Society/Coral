@@ -1,0 +1,44 @@
+# Two containers for the whole run:
+#   main    — the agent. World documents, task prompts, NO rubric text anywhere.
+#   grader  — sole holder of the visible rubrics; grades submissions and enforces
+#             the 20-submission budget. The agent can call it but cannot read it.
+#
+#   harbor run ... --extra-docker-compose <task>/env-overlay/docker-compose.yaml
+#
+# Neither service declares `networks`/`network_mode`, so harbor puts both in the
+# egress sidecar's network namespace. Two consequences:
+#   - main reaches the grader on 127.0.0.1 (local, so it bypasses the proxy);
+#     `http://grader:8000` would NOT resolve — a container in another's namespace
+#     gets no DNS record of its own.
+#   - the grader's judge calls go through the allowlist, so the judge host is in
+#     task.toml's allowed_hosts. The agent shares that allowlist but not the key:
+#     APEX_LLM_API_KEY is handed to this service only, never to [environment.env].
+#
+# BUILD CONTEXT `../grader` is relative to compose's project directory, which
+# harbor always sets to <task>/environment. `image:` + `pull_policy: never` does
+# NOT skip the build — harbor runs `docker compose build`, which builds every
+# service declaring `build:` regardless of whether the tag exists.
+services:
+  grader:
+    image: apex-law-caseload-b-grader:latest
+    build:
+      context: ../grader
+    pull_policy: never
+    environment:
+      APEX_LLM_API_KEY:   "${APEX_LLM_API_KEY:-}"
+      APEX_LLM_API_BASE:  "${APEX_LLM_API_BASE:-https://generativelanguage.googleapis.com/v1beta/openai}"
+      APEX_JUDGE_MODEL:   "${APEX_JUDGE_MODEL:-gemini-3-flash-preview}"
+      APEX_JUDGE_EFFORT:  "${APEX_JUDGE_EFFORT:-low}"
+      APEX_JUDGE_MAX_TOKENS: "${APEX_JUDGE_MAX_TOKENS:-512}"
+      VISIBLE_BUDGET:     "${VISIBLE_BUDGET:-90}"
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/status', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 2s
+  main:
+    depends_on:
+      grader:
+        condition: service_healthy

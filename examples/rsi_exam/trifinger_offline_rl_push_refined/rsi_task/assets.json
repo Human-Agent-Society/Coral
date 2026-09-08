@@ -1,0 +1,27 @@
+[
+  {
+    "path": "tests/anchor_checkpoints/baseline/model.pt",
+    "size": 27,
+    "sha256": "6304baf7d4806e5d86657b18ae7048bff28da9ed810d9c1438312a2eaa26e056"
+  },
+  {
+    "path": "tests/anchor_checkpoints/reference/model.pt",
+    "size": 376957,
+    "sha256": "6219da093333f89a81a7292fd2a41250aacef1afaf2b0c5937dbb0df311b221c"
+  },
+  {
+    "path": "tests/anchor_checkpoints/sota/model.pt",
+    "size": 23192513,
+    "sha256": "c9c0f22379e4f99ffe3b197d23a5c5552bdacff80372af121ea53a455550c17e"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 92,
+    "git_blob_sha1": "03afc26c2d64218ebf50e81b398fce63e1f48af3"
+  },
+  {
+    "path": "tests/split_check_results.json",
+    "size": 2130,
+    "git_blob_sha1": "def58c490f58811c4642a4841fc292770a4aa0b7"
+  }
+]

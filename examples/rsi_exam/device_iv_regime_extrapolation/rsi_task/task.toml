@@ -1,0 +1,31 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name        = "autoresearch-arena/device_iv_regime_extrapolation_v1"
+description = "Power-device qualification sign-off: submit a prediction method that turns safe-window I-V/temperature measurements of a diode lot into terminal-current commitments at mission-profile extremes (high temperature, deep reverse bias); a sealed evaluation re-runs it on an unseen lot drawn from the same population as the practice fleet (fresh devices, harder-corner weighted) and scores log-current error on the same extreme grid the practice truth covers."
+authors     = [{ name = "kaiwen xiong" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+[environment]
+build_timeout_sec = 1800.0
+network_mode = "public"
+cpus       = 4
+memory_mb  = 12288
+storage_mb = 10240
+gpus       = 0
+
+[verifier]
+timeout_sec      = 7200.0
+environment_mode = "separate"
+cpus             = 4
+memory_mb        = 1024
+
+[verifier.environment]
+network_mode = "no-network"
+
+[scoring]
+metric = "sealed_lot_mean_abs_log10_current_error"
+direction = "lower"

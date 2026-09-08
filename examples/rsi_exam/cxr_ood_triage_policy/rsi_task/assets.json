@@ -1,0 +1,27 @@
+[
+  {
+    "path": "environment/data/calibration.jsonl",
+    "size": 858959,
+    "git_blob_sha1": "53aa0b775f1f95b06c2686a61a4c688ce8304353"
+  },
+  {
+    "path": "environment/data/grade.jsonl",
+    "size": 435907,
+    "git_blob_sha1": "01896738a249e08bcfff9f008fa74b5ca48058dd"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 96,
+    "git_blob_sha1": "476986365bd176f1dd756ba14f6bda84b56c6ac0"
+  },
+  {
+    "path": "tests/heldout/calibration.jsonl",
+    "size": 858959,
+    "git_blob_sha1": "53aa0b775f1f95b06c2686a61a4c688ce8304353"
+  },
+  {
+    "path": "tests/heldout/grade.jsonl",
+    "size": 871858,
+    "git_blob_sha1": "8d53185bd663c6e522710e005fc2a0147a652652"
+  }
+]

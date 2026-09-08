@@ -1,0 +1,30 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "clevr_cogent_grpo_qwen2vl",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/clevr_cogent_grpo_qwen2vl",
+  "sha256": {
+    "environment/Dockerfile": "6067bea702571483a5ea6a06abfa860bca0e226344b56160d2d8334c060e3d65",
+    "environment/docker-compose.yaml": "b19de7cc56cf588b9a4b5ca85be3849f4c8a142d04b8336b405c94021ea78981",
+    "environment/eval_common.py": "d1e23be86871891691a3914c27458552bca0ca3481f80fb55fa2605f422d1542",
+    "environment/methods/main/README.md": "46d1f94fd4adefb1ea9d83c7d0a8e4d30d28f3d12888be320113e5659c19cece",
+    "environment/methods/main/train.sh": "6d9253ce18912264671c478dd2b8b53fe7f8c7a10d44e2626fe81219c7294aa7",
+    "environment/prepare_data.py": "a54f03185861afebf3a7ec0b61c1c7c0246bab593ea9d68246b244fc9e69bb74",
+    "environment/selfcheck.py": "8e97a3db8e0d52aaf43fe404355416647902119bdb35e633a64f3237b4f51b05",
+    "instruction.md": "1dee3bab8308301912a1828ef262e6aa6f8af6febabb8c29a408c84bfe492244",
+    "task.toml": "c45a019cc62202b9c2c63e0180ac4fecec926005f54156a9e1205896c16b5c75",
+    "tests/Dockerfile": "299478c87773f3845f1789088f55587d1763840952c3bd6a957d7dc8e77d3ba9",
+    "tests/docker-compose.yaml": "3d6acf8d5345581fc7804adca4f103519a8eee131bf0926b84d93681218f2542",
+    "tests/eval_common.py": "5c832ba2f1f07d645569ea8bb9d01d4dad5abcfd11c373d7d165deddb2c96c70",
+    "tests/grade.py": "df1f82b7523de3dbe63e0cff55a68910487893d5e49025d1bb22a082cfdedfaf",
+    "tests/prepare_heldout.py": "1fe7f3c2ad1e9e5bb2cee9a77d569002b7ea6c2d20cd56b9eec07ba082067058",
+    "tests/test.sh": "a8c681896a556b5454a74f7b145af07f0f7322b5b5129c7bb54ae1752bf40981"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 126,
+      "git_blob_sha1": "dea426724ae8c68f859eee1a8c0c718d74a2658b"
+    }
+  ]
+}

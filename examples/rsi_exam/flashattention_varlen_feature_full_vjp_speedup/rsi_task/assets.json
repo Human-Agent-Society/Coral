@@ -1,0 +1,37 @@
+[
+  {
+    "path": "environment/problems/visible_baseline_manifest.json",
+    "size": 58356,
+    "git_blob_sha1": "ca9d0c0f025d9dba608ef1a1b21c5b0ee33f51fe"
+  },
+  {
+    "path": "environment/problems/visible_cases.json",
+    "size": 8165,
+    "git_blob_sha1": "4d3d3018c575cc0f918939483d7a3e902d4d6eaf"
+  },
+  {
+    "path": "tests/anchor_inputs.json",
+    "size": 423,
+    "git_blob_sha1": "e49e6491e380d1a1a43a810ed6330b09119cb022"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 525,
+    "git_blob_sha1": "27d84aebb7c460ec6c13e6d4e32571e7b3a099a3"
+  },
+  {
+    "path": "tests/guard_tokens.json",
+    "size": 212,
+    "git_blob_sha1": "a0f6bd91844f521c00d3aea4e66d12c4aaddb284"
+  },
+  {
+    "path": "tests/heldout/baseline_manifest.json",
+    "size": 100975,
+    "git_blob_sha1": "da2a37bc8035ce3ae647fa77d78d0c6057e2a1df"
+  },
+  {
+    "path": "tests/heldout/test_spec.json",
+    "size": 8798,
+    "git_blob_sha1": "063bad2ad8c693994ce7c9482e2a393211f5709d"
+  }
+]

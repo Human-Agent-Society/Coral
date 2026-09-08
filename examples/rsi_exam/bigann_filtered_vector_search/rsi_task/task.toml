@@ -1,0 +1,30 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name        = "autoresearch-arena/bigann_filtered_vector_search"
+description = "Build a filtered-ANN index/search solver over the real Big-ANN yfcc-10M library (10M x 192 uint8 vectors, 200,386 tags, 108M tag entries); graded by wall-clock throughput of one batch call at recall@10>=0.90 on a sealed hidden workload."
+authors     = [{ name = "riken" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "public"
+cpus       = 8
+memory_mb  = 32768
+storage_mb = 30720
+gpus       = 0
+
+[verifier]
+timeout_sec      = 10800.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+
+[scoring]
+metric    = "qps_at_recall0.90"
+direction = "higher"

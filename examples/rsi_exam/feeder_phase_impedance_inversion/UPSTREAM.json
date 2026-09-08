@@ -1,0 +1,45 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "feeder_phase_impedance_inversion",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/feeder_phase_impedance_inversion",
+  "sha256": {
+    "environment/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "environment/Dockerfile": "60465152958bf138a2fc8a746ed89cedacf2be296a76db005002e42bd91327f5",
+    "environment/data/practice/DATA_CARD.md": "28930ec802d10654a1036efd41c08f1661f9f90e9ed2aa473c77d04ea02fe103",
+    "environment/methods/main/dss_forward.py": "4ab5163d201072aa34183290089c02ec12db5e789c7a341874e2f765dfe18426",
+    "environment/methods/main/solver.py": "6906a895f21a0a6ffe568830377d8d46713bb06a774dc17bf17b408080d0467e",
+    "environment/run_solver.py": "d10d7c6a122de9dfce895ac5f9b03ebcb802bcc5887b9e9a0ec4d286c180b319",
+    "environment/selfcheck.py": "bae66da8a2d688d1c27f547b379ff0956ce40b5b54b23b1037149fff8debdc36",
+    "instruction.md": "2a9b5a7148f5c8ce750f1a3947c58d981fd9c245cbf4b7f47efaffafbb930d37",
+    "task.toml": "aea83feb3718c885ac9d785d4b98aff1d266af39661718c1bc027ae047855590",
+    "tests/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "tests/Dockerfile": "aecd281de4b0f39b5bcdb68cfde24f123772466ff9782dca07688a68e7c16520",
+    "tests/grade.py": "f8d22ccf26910416ed0a190068c4f3bccea4c17435ba9962acbca48265818f3e",
+    "tests/heldout/feeder_core.py": "eccce1ed320521992cdf4968d4db3ad710664559f6f31cce71b9fe6323c2e3db",
+    "tests/heldout/heldout_gen.py": "ac3abb96d4e402e95aba171df0a291c1d685bf654a26e9e29d8ec0aa1ca2a217",
+    "tests/test.sh": "08e37739feb135da0cf8d65274e1c928abe02331a4e6c412ccdf07f4e99e2596"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/assessment/records.json",
+      "size": 1564617,
+      "git_blob_sha1": "7fc27904d0cecec63fb340633ca6b5b710771c1b"
+    },
+    {
+      "path": "environment/data/practice/instances.json",
+      "size": 1205808,
+      "git_blob_sha1": "0113af4995a87414e76338d3b638494ff2fad0d5"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 90,
+      "git_blob_sha1": "87d8d337c7ca91034b365069065395d48119d5b0"
+    },
+    {
+      "path": "tests/heldout/instances_sealed.json",
+      "size": 1570438,
+      "git_blob_sha1": "e80a4ac6c5847338d1d286b13053f894508f28df"
+    }
+  ]
+}

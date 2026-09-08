@@ -1,0 +1,108 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "lung_fewshot_celltype_annotation",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/lung_fewshot_celltype_annotation",
+  "sha256": {
+    "environment/.dockerignore": "09dbbf62c11ae967e4d7892886702e14e75188d680242db4a0eb5e0e0c8cfe23",
+    "environment/Dockerfile": "52a45d24c3222f609bd86a34ef3a94a96fb74fe476db2118c614c9a74a86d247",
+    "environment/Dockerfile.dockerignore": "36875ccf9080eb407af112c0e5f99f7489084fae81dfd37352708b406494d343",
+    "environment/Dockerfile.evaluator": "bfb8990df4e0effd3efb16af298de051a9e09e9c0a0a425d8137731049ca5ca8",
+    "environment/Dockerfile.evaluator.dockerignore": "078391d9ce3fc5274903b01f79edba4348c44a82edc71fc747c6d022b2e8b762",
+    "environment/build_validate_assets.py": "c818077ef59b6c3b83dac018f64d70effa9a37be767f58e5343f654f256c004f",
+    "environment/bwrap_guard.c": "f0eedc43819031520003dfc3c9602b6a5a138bbe58bdfda3478856022bf90eb9",
+    "environment/bwrap_guard_selfcheck.sh": "ee4f4307386564791b7ec8cf05a3df06ba343b92ddb000ca9023910825ac515d",
+    "environment/data/README.md": "4cf241f8ab4eb7749335cd4a6e5445e5b60456266ed3b598f156d17c1c561c00",
+    "environment/docker-compose.dev.yaml": "e61752f0d038f29b23b2b032432631be0a4d2260c51b1d653c4bbbd1fe928e0d",
+    "environment/docker-compose.yaml": "b27723a5085e9340797c15d0ba4a8bc33e21936663ae29879086f7ca6c68366c",
+    "environment/evaluator_data/README.md": "e8a10bc5b0528f4e3bbd3bc2ba99925319b603072131355a53e53e526d6e8f7d",
+    "environment/methods/main/solver.py": "95286b172cbbd13de1636471973ef7a73a0bdb429d227c41c54fc4a50a0d63ce",
+    "environment/requirements.evaluator.txt": "932d13c6392a79a419fa6de9b31e17e8dd873b83451b6a2f4a3744a99c26facb",
+    "environment/requirements.txt": "e81b77db41814fb208d41722039c035c247595489ddbfd0a0d6c61b556e0f8f9",
+    "environment/score_visible.py": "6b890ddc7df8a91bad7e0afcd9ef8aaf1252aaf3294553a701817479fb97fbe9",
+    "environment/selfcheck.py": "6a06813778b86a7200762d3dd9288b0c04d2410620c25403ebab012eb1139d54",
+    "environment/visible_client.py": "733ccdff91e1fd42e9096d66a31e087a498e901de30adbe0285568868a777aed",
+    "environment/visible_server.py": "78eaac20ac9f3e5539c9718a8abcab06687ea257f68dbf6a0ceb4c622471bafc",
+    "instruction.md": "0ee83ac94707af4b6535f559f4b463b0fd2c54d73764cb6eb0fb21e093f2769c",
+    "task.toml": "342e49f24d920df374b5dadf0a11ef4379dd5d0200a703ecedce7ea8845557b5",
+    "tests/.dockerignore": "94bcaf35124aba2e5fd71cbf62d27bb305dea9bb0935e076aa1da4c7d86422bc",
+    "tests/Dockerfile": "5dbe3b6c3a48c120e4fc32d8957366adb46383f85cbb8fd7f1dcfdb7a7be3859",
+    "tests/build_validate_assets.py": "7ebfb6d38438b389e477ba7cfc348b0d867b5b9f7f0e2e36ba7e671494308ade",
+    "tests/docker-compose.yaml": "57487cbeaf25c04f0c96f0010bf60ab3b938238a1ab6202cb124b4c5355fd7ad",
+    "tests/fail_closed.py": "5a23c8f552b3a751975c070abb0ef95bab5cb2434cd4bda67c9570948e31517d",
+    "tests/grade.py": "1e7d44590a00b8ca9e3772719daa283acbe84d53597426659975c23f4f4398f0",
+    "tests/requirements.txt": "e81b77db41814fb208d41722039c035c247595489ddbfd0a0d6c61b556e0f8f9",
+    "tests/reward_mapping.py": "686cce1474c93d5ef68d672897861dc1ac60f13355836e9d7d68b4d6047c36ed",
+    "tests/secure_runtime.py": "2c692297b42d7c39b4f462af7972145fc2e19c95019e20b2c3ddeb92c5eb6090",
+    "tests/test.sh": "ce05c9226883d71508f02f8ad29ad695aa422656b38cc5db0e18cf9762c7d044",
+    "tests/test_runner_boundary.py": "a5193f14b55d7ac3746bf84c1c013681c2aae1abc1f79f6c1cb0db8f3ca1e52e",
+    "tests/validate_outputs.py": "c286b42168d622e925546c8a22fa742dab6867982403a6c3a793474672f0612b"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/classes.txt",
+      "size": 218,
+      "git_blob_sha1": "293fd3d903944cedb7ad033ba224af980f3ac6b5"
+    },
+    {
+      "path": "environment/data/reference_model.pkl",
+      "size": 774940,
+      "sha256": "ca34a816b693613eed7591efc1ed1c5581d10a310942ed5cf25d7e98884fae66"
+    },
+    {
+      "path": "environment/data/visible_labeled.h5ad",
+      "size": 1138579,
+      "sha256": "e009455de016df7dfbd16e1c5201f9f73da182f2c0b257c5c94e25e579929f5c"
+    },
+    {
+      "path": "environment/data/visible_query.h5ad",
+      "size": 5671262,
+      "sha256": "dc19fbdd164bfb43e4ea790a89514617d146795c41508604651788e3342450ab"
+    },
+    {
+      "path": "environment/data/visible_unlabeled.h5ad",
+      "size": 97708447,
+      "sha256": "6db99bc3eb5ec31ab1a1e10e757275a6d5fbec9a66b3f83d39043d4131c67b27"
+    },
+    {
+      "path": "environment/evaluator_data/visible_labels.csv",
+      "size": 34827,
+      "git_blob_sha1": "cc95f0348a4ae00ab37020087987f58dbf2c9041"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 93,
+      "git_blob_sha1": "1802f10a077324543a7a1b94f01fba43d6f04e17"
+    },
+    {
+      "path": "tests/heldout/labels.csv",
+      "size": 28661,
+      "git_blob_sha1": "e7489ba7947070dd6433bb93aa08417c37a25387"
+    },
+    {
+      "path": "tests/heldout/query.h5ad",
+      "size": 4967777,
+      "sha256": "724dd36e19ba8692a1237fa508831522bb012d991b8b0e0a603dc915f691f8bc"
+    },
+    {
+      "path": "tests/public/classes.txt",
+      "size": 218,
+      "git_blob_sha1": "293fd3d903944cedb7ad033ba224af980f3ac6b5"
+    },
+    {
+      "path": "tests/public/reference_model.pkl",
+      "size": 774940,
+      "sha256": "ca34a816b693613eed7591efc1ed1c5581d10a310942ed5cf25d7e98884fae66"
+    },
+    {
+      "path": "tests/public/visible_labeled.h5ad",
+      "size": 1138579,
+      "sha256": "e009455de016df7dfbd16e1c5201f9f73da182f2c0b257c5c94e25e579929f5c"
+    },
+    {
+      "path": "tests/public/visible_unlabeled.h5ad",
+      "size": 97708447,
+      "sha256": "6db99bc3eb5ec31ab1a1e10e757275a6d5fbec9a66b3f83d39043d4131c67b27"
+    }
+  ]
+}

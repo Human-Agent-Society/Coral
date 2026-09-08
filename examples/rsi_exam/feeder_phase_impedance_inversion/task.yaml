@@ -1,0 +1,106 @@
+task:
+  name: rsi-exam-feeder_phase_impedance_inversion
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Repair a feeder's phase\
+    \ and impedance records from smart-meter archives\n\nYou are an AI agent assisting a distribution\
+    \ planning engineer at a mid-size\nutility with a solar interconnection queue. Before any hosting-capacity\
+    \ or voltage-drop\nstudy can be signed off, the feeder model has to be calibrated: the GIS\nsays which\
+    \ phase each customer is on, which conductor each segment uses,\nand where the regulator tap sits\
+    \ \u2014 and all three are wrong at\nwell-documented rates, because crews re-phase laterals after\
+    \ storms,\nre-conductor spans without closing the paperwork, and move taps in the\nfield. All you\
+    \ have per feeder is two to three days of 15-minute AMI\ndata from most (not all) customers \u2014\
+    \ voltage magnitude only \u2014 plus head\nSCADA and billing averages. A model calibrated too optimistically\n\
+    overstates hosting capacity and customers get voltage complaints; too\npessimistically and interconnections\
+    \ are refused for no reason. You\ninherit the utility's current first-pass script; your job is to\
+    \ build\nthe calibration method the utility will run fleet-wide \u2014 it is re-run,\nunchanged, on\
+    \ feeders whose actual wiring you never see.\n\n## Hard Constraints\n\n- Submit a **method**: `methods/main/solver.py`\
+    \ defining exactly\n  `calibrate(record) -> dict` with keys `\"phase\"` (list of one int in\n  0/1/2\
+    \ per customer), `\"code\"` (list of one conductor class per\n  segment, from the record's catalog),\
+    \ `\"scale\"` (list of one positive\n  impedance multiplier per segment), and `\"tap_steps\"` (number,\
+    \ in\n  regulator steps). Optionally add `\"z_rx\"`: a list of\n  `[R1_ohm, X1_ohm]` per segment,\
+    \ which then overrides `code`/`scale`\n  in the impedance part of the score. A pure function of one\
+    \ feeder\n  record.\n- `record` is a dict with the feeder's network records and its AMI\n  monitoring\
+    \ window \u2014 the same schema as the practice records, minus\n  the truth field. Field-by-field\
+    \ documentation:\n  `data/practice/DATA_CARD.md`.\n- Each call runs in a **fresh process under a 300-second\
+    \ wall-clock\n  budget** (measured outside your process, with a 15 s grace and a hard\n  kill at 330\
+    \ s); over-budget, crashed or malformed outputs are scored\n  as the worst case for that feeder.\n\
+    - **Evaluation budget as a whole**: the evaluation runs your method once\n  per assessment feeder,\
+    \ serially, inside a **10800-second wall-clock\n  cap** for the entire scoring pass, on **2 CPUs and\
+    \ 512 MB of memory**.\n  The assessment fleet is **16 feeders \u2014 1.33\xD7 the 12 practice feeders\n\
+    \  you have** \u2014 and its members are on average larger (more customers and\n  more segments) than\
+    \ the practice ones. Budget your per-feeder cost\n  accordingly: 16 feeders that each burn the full\
+    \ 300 s do fit, but\n  nothing beyond that does.\n- CPU only, no network. Runtime: Python 3 with numpy,\
+    \ scipy and the\n  OpenDSS engine (`import opendssdirect`); you may run as many forward\n  power-flow\
+    \ solves as the budget allows. Your own container has\n  **2 CPUs / 1024 MB**. `/dev/shm` is only\
+    \ **64 MiB** on both sides, so a\n  `multiprocessing` / `joblib` design that passes large arrays through\n\
+    \  POSIX shared memory will create the segment successfully and then die\n  with SIGBUS on the first\
+    \ write \u2014 size any such buffer accordingly.\n  BLAS/OpenMP thread counts are pinned to the\n\
+    \  same constant on both sides, so a timing you measure with\n  `selfcheck.py` transfers to the evaluation.\n\
+    - Only files under `methods/` are collected and re-run: keep everything\n  `calibrate()` imports inside\
+    \ `methods/main/`. Do not modify `data/`,\n  `selfcheck.py` or `run_solver.py`.\n- Return plain python\
+    \ types (ints/floats/lists); numpy arrays are fine for `z_rx` rows, but\n  every value must be finite\
+    \ and `code` entries must come from the record's catalog. A\n  malformed return is scored as the worst\
+    \ case for that feeder.\n\n## What You Have\n\n- `data/practice/instances.json` \u2014 12 practice\
+    \ feeders with **complete\n  as-operated truth** (actual per-customer phases, per-segment conductor\n\
+    \  classes and impedance multipliers, actual tap), documented in\n  `data/practice/DATA_CARD.md`.\
+    \ This is your only labeled data; study it\n  in full.\n- `data/assessment/records.json` \u2014 the\
+    \ 16 assessment feeders your\n  method will actually be judged on: same monitoring protocol, **no\n\
+    \  truth**. They are unseen feeders drawn from the same population as\n  the practice fleet (a subset\
+    \ weighted toward its hard end: the\n  largest networks and longest segments the population produces).\n\
+    - `methods/main/solver.py` \u2014 the inherited starting method: voltage-\n  trace similarity grouping\
+    \ for metered phases, records-as-shipped\n  impedances, and a tap estimate from the average voltage\
+    \ offset of an\n  OpenDSS replay (`methods/main/dss_forward.py` is its forward engine;\n  `python3\
+    \ methods/main/dss_forward.py` runs a round-trip demo). It\n  carries a real signal but is far from\
+    \ what the records support; its\n  level is also the floor you must clearly beat before the evaluation\n\
+    \  awards any credit.\n- `python3 selfcheck.py` \u2014 free and unlimited: scores your current\n \
+    \ `methods/main/solver.py` on the practice fleet against its truth and\n  prints per-feeder component\
+    \ scores and the mean.\n\n## What You Submit\n\nLeave your best `methods/main/solver.py` (plus any\
+    \ helper files it\nneeds inside `methods/main/`) in place. There is no submit step and no\nfeedback\
+    \ from the assessment fleet: whatever sits in `methods/main/` at\nthe end is what the evaluation re-runs.\n\
+    \n## How It Is Judged\n\nThe evaluation re-runs your `calibrate()` once per assessment feeder,\non\
+    \ records byte-identical to `data/assessment/records.json`, and\ncompares your output to the sealed\
+    \ as-operated truth. Per feeder it\ncomputes a score in [0, 1] (HIGHER is better): **0.45 \xD7 phase\
+    \ score**\n(label accuracy over metered customers, rescaled so that copying the\nshipped GIS labels\
+    \ scores 0 and perfect labeling scores 1) **+ 0.40 \xD7\nimpedance score** (how much your cumulative\
+    \ substation-to-customer\npositive-sequence R and X \u2014 the quantity a voltage-drop study consumes\
+    \ \u2014\nimproves on the records as shipped, measured by log-error norm and\nclipped to [0, 1]) **+\
+    \ 0.15 \xD7 tap score** (1 \u2212 |tap step error| / 4,\nclipped). Returning the records as shipped\
+    \ scores exactly 0 \u2014\n`selfcheck.py` computes the identical per-feeder score on practice.\nFeeder\
+    \ scores are averaged within each assessment group (`f00`\u2013`f07`\nand `f08`\u2013`f15`), then\
+    \ across the two groups. Your reward rises\nmonotonically with that sealed mean; at or below the shipped\
+    \ starting\nmethod's level it is zero.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 15300
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/feeder_phase_impedance_inversion/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

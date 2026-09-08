@@ -1,0 +1,43 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name = "autoresearch-arena/flashattention_varlen_feature_full_vjp_speedup"
+description = "Optimize six preregistered D160 noncausal-global ragged attention strata per panel with 48–96:1 GQA, ALiBi, softcap, non-dense packed views, and complete Q/K/V VJP."
+authors = [{ name = "riken" }]
+
+[agent]
+network_mode = "no-network"
+timeout_sec = 43200.0
+
+[environment]
+build_timeout_sec = 1800.0
+network_mode = "public"
+workdir = "/app"
+cpus = 8
+memory_mb = 65536
+storage_mb = 20480
+
+[verifier]
+timeout_sec = 5400.0
+environment_mode = "separate"
+
+[verifier.env]
+SCORING_MODE = "raw_speedup_no_normalization"
+CALIBRATION_STATUS = "pending_h100_remeasure"
+HELDOUT_PANEL_SHA256 = "e9e53a3c34b241b13d1a1b47e3b37bedf0d54d16dcf41d602dbb0ef1a136b483"
+BASELINE_MANIFEST_SHA256 = "4c04eaf15383c3b3ff086592fc1df3a90fc3aeecba31923eb216a285ec9a03ed"
+HUMAN_SOTA_RAW_SPEEDUP = "13.778460008521407"
+UPPER_BOUND_RAW_SPEEDUP = "210.39264099319001"
+EXPECTED_GPU_NAME = "PENDING_H100_REMEASURE"
+
+[verifier.environment]
+network_mode = "no-network"
+build_timeout_sec = 1800.0
+cpus = 8
+memory_mb = 65536
+storage_mb = 20480
+
+[scoring]
+metric = "raw_speedup"
+direction = "higher"

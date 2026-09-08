@@ -1,0 +1,42 @@
+# Six-Channel Cell Morphology Generation
+
+Generate perturbed-cell morphology from untreated controls and biological condition embeddings. You inherit a deterministic control-passthrough solver and should minimize overall FID; the verifier re-runs your saved method on sealed test cells.
+
+## Hard Constraints
+
+- Work only inside `/app/methods/main` and write learned artifacts to `/app/submission`.
+- Keep the public `train(data_path, output_dir, config=None)` and `predict(inputs_path, checkpoint_dir, output_path)` interfaces in `/app/methods/main/solver.py`.
+- Save a usable `/app/submission/checkpoint.pt` during every completed training stage so a timeout still leaves an evaluable submission.
+- Prediction must be deterministic for fixed inputs and checkpoint. Write one uint8 six-channel image per input to an NPZ with exactly the keys `prediction` and `sample_id`, preserving input order.
+- Training and prediction must be self-contained. Evaluation has no network access and does not install additional packages.
+- Predictions must be **generated**, not retrieved: an output that reproduces a treated image you were given -- from the training data or the visible targets -- is invalid. The verifier measures the share of outputs that duplicate such an image; above 5% the submission scores zero regardless of FID. Echoing your own control input is not covered by this rule; that is what the starter does and it already scores zero. `selfcheck.py` reports the same number so you can see it before submitting.
+
+## What You Have
+
+- `/app/data/train.npz` contains treated images, a same-batch control bank, batch metadata, condition IDs, and a 200-dimensional embedding table. Images are NHWC uint8 arrays with shape `96 x 96 x 6`.
+- `/app/data/validation_inputs.npz` contains visible control images, embeddings, batch metadata, condition IDs, and sample IDs. `/app/data/validation_targets.npz` contains the corresponding treated distribution.
+- The task contains 100 fixed perturbation conditions. Visible validation has 10 deterministic images per condition (1,000 total); the remaining agent data contain 10,730 train-treated images and 480 training controls. Training, visible validation, and sealed evaluation use disjoint cell images.
+- `/app/methods/main/solver.py` is the editable starter. Its initial prediction simply copies the control image.
+- Run `python /app/train.py` to create a checkpoint and `python /app/selfcheck.py` to compute visible overall FID.
+
+## What You Submit
+
+- The complete `/app/methods/main` directory, including every module needed by training and prediction.
+- `/app/submission/checkpoint.pt` and any additional self-contained weights or configuration required by `predict`.
+- Do not submit precomputed sealed predictions. The verifier invokes your method on its own inputs.
+
+## How It Is Judged
+
+- The trusted grader calls `predict` in an isolated process on controls and condition embeddings from sealed test cells.
+- Real and generated six-channel images are converted to RGB with the fixed channel-composite rule before evaluation.
+- The sole ranking metric is overall FID across the complete sealed set. Lower is better; conditional FID is not used.
+- The baseline is the supplied control-passthrough solver, measured at overall FID `87.69610595703125` on the frozen 2,942-image sealed manifest. Matching or underperforming it receives zero reward.
+- Invalid output keys, shapes, dtypes, sample order, missing checkpoints, non-finite scores, or evaluation failures receive zero.
+
+## Common Pitfalls
+
+- This is an unpaired distribution-generation task, so per-image reconstruction loss does not express the complete objective.
+- Overall FID can conceal condition collapse. Inspect individual perturbations on the visible set even though the leaderboard uses one aggregate score.
+- Preserve all six output channels; the evaluator owns the fixed RGB composite conversion.
+- Do not depend on host paths, network downloads, or files outside the submitted method and checkpoint directories.
+- Keep inference fast enough for the sealed set and make random seeds explicit; stochastic variation should not change repeated scores.

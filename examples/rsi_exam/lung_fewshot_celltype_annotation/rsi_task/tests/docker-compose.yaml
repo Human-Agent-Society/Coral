@@ -1,0 +1,12 @@
+services:
+  main:
+    security_opt:
+      - seccomp=unconfined
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE:-0}"]
+              capabilities: [gpu]

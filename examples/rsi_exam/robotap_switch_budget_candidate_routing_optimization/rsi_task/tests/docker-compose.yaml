@@ -1,0 +1,14 @@
+services:
+  main:
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "void"
+      CUDA_VISIBLE_DEVICES: ""
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m,mode=1777
+      - /run/candidate-routing-grade:rw,nosuid,nodev,size=512m,mode=0711

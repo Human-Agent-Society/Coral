@@ -1,0 +1,57 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "bbo_simopt_inventory",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/bbo_simopt_inventory",
+  "sha256": {
+    "environment/Dockerfile": "c1e6533248989daf4347714d000106d97e81f771e2bae0d30446fa7165e07e30",
+    "environment/bbo_harness.py": "2637b123e3daeacd2fbfa9c9ae2b9e9f2394bb53d9f79b0da84af9792b590266",
+    "environment/methods/main/solver.py": "9d30f9b6b7f2055fbe05869369294b9db60c9cc2c14b3cfa9808d7793927d874",
+    "environment/public_scoring.py": "c8eb637e7b23852ce91533473a872ac7fd7bf6a26a939c12b2540d43d60becce",
+    "environment/selfcheck.py": "da89d1ed17fdb4932e0f13c43f40ab60b0292ca25dfffe30fe6c135793c3c876",
+    "instruction.md": "60fe465105efbb1fb37be45c31a0109afdb6840a71a752d0fa4d9314bf11a184",
+    "task.toml": "5d64b84bbba8aa1917a7275d3f4e46be1dbf1ddae4ca01a33000b87a2011f449",
+    "tests/Dockerfile": "176a667e5bbd1bed1e61ef0b3b8d26f9223f505b7184efef8f1cfe3c94e75602",
+    "tests/child_optimizer.py": "bfe6c8c68d409645ab6f0fe87e39cabd912a33edbb4f15b8b3765dfdf585d95a",
+    "tests/fail_closed.py": "d22d5be3e96aeb5a1bc0e4e70d2157f39615c00e766ab0068a2d810ea0cb4bd6",
+    "tests/grade.py": "28b24c8ee5fd70416e20f32aca47a64b0dfd65d5af176c21e3c7559d89d4823d",
+    "tests/heldout/bbo_harness.py": "2637b123e3daeacd2fbfa9c9ae2b9e9f2394bb53d9f79b0da84af9792b590266",
+    "tests/heldout/oracle_scoring.py": "833ec28e41fe393cb73690cd777062215c849935abb566e5b8fc9fa14465d22a",
+    "tests/heldout/source_evaluate.py": "8e7e5d615dea1cc8247c699cb8d1ca6655d60adf8eddda5005c7e5710ef18963",
+    "tests/test.sh": "49e72a7377f83ade0aedfe1e08e7af2b639c5dd8e12334dec021d904a78d3adb",
+    "tests/test_v2_contract.py": "b264fac93076cfc36e295e7c207e994f19859688d488c697427f715f7b8b4804",
+    "tests/validate_outputs.py": "8791b6cdd7f124ff31b743bc44321dbebf3b3fdce186c8e7ec63ebfa940814d3"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/visible.json",
+      "size": 10916,
+      "git_blob_sha1": "0965da7fa5f757111a8ea6584521ac334bfd9ee4"
+    },
+    {
+      "path": "environment/data/visible_anchors.json",
+      "size": 30251,
+      "git_blob_sha1": "dce25b1389e92d99b292af618fe2376fb6e39e3a"
+    },
+    {
+      "path": "tests/heldout/frozen_anchors.json",
+      "size": 39872,
+      "git_blob_sha1": "ab793c59efa1c810d5b285b906b5f23e163f3f65"
+    },
+    {
+      "path": "tests/heldout/hidden_data.json",
+      "size": 14550,
+      "git_blob_sha1": "eeaff4c196d6e35cdedf53d72cda46b9b13f5a45"
+    },
+    {
+      "path": "tests/heldout/oracle_provenance.json",
+      "size": 623,
+      "git_blob_sha1": "8dcd86466d248ca171f789d34ef1f698b700579c"
+    },
+    {
+      "path": "tests/heldout/oracle_values.json",
+      "size": 720,
+      "git_blob_sha1": "1a2ad0c0f0731d7a051ca3f6b125ca105b4b6734"
+    }
+  ]
+}

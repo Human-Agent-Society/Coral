@@ -1,0 +1,68 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "flashattention_varlen_feature_full_vjp_speedup",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/flashattention_varlen_feature_full_vjp_speedup",
+  "sha256": {
+    "environment/.dockerignore": "ded25e9910f93a1678df2bd2a88cef6469db0c27dec150bc15f0a53042fe017e",
+    "environment/Dockerfile": "ed55b962a5ec803a1b9945f0b72ac2d4669446aaa7d208bd4fba63f792df5a2a",
+    "environment/docker-compose.yaml": "7d85a280293126eb90d20a906ad1c7aa7a75ae902070f76abfc0f7d6823e859b",
+    "environment/methods/experiment_log.md": "fbd44824bfab09d047a430628788e16a93e4f85fc392d0d350f44d1330dd8962",
+    "environment/methods/main/solver.py": "9675ad90746c4b75f7441bdfdaaaf09a787eec881d6c063997ec353a9a52facb",
+    "environment/methods/versions/v0/solver.py": "9675ad90746c4b75f7441bdfdaaaf09a787eec881d6c063997ec353a9a52facb",
+    "environment/protocol.py": "ebce2ab1197d6f3e68636cd3bfa9751f5aece98912c7438e804e60e3ba3e196e",
+    "environment/selfcheck.py": "5cbcd07c79edcd7255336ecd686e72659e15432d6a0e82d93c159cbf9352df35",
+    "environment/submission_guard.py": "92e5dc95575a620d8ce3f487a9d47f2bbc840906c5042f376c000d89c80e4444",
+    "instruction.md": "ff9c0c5579c938c06d6bce4f596f8cba55227c1b292926a6efdd27d3b7113ab5",
+    "task.toml": "b2d869ed9a89668238d5fdac7b302280a15f8aadafc44d6ba90035ef0c1699dc",
+    "tests/.dockerignore": "ded25e9910f93a1678df2bd2a88cef6469db0c27dec150bc15f0a53042fe017e",
+    "tests/Dockerfile": "28a15cdc7d4122aa9143d7751ccb39a5f53961fd9f8d0b77a8063f9773a6acd9",
+    "tests/Dockerfile.oracle": "f263b543c8a3626fa59fa05c2b7e7b5bb9a0aae70ba38c482239340a6ddd5dac",
+    "tests/child_eval.py": "9c65206033f3076e75751aa220172f887308a930eb45f93fc087d248baaaa607",
+    "tests/docker-compose.yaml": "7d85a280293126eb90d20a906ad1c7aa7a75ae902070f76abfc0f7d6823e859b",
+    "tests/grade.py": "3bd3f4ea2e3d9563c630ff87da56e21c49c2908bc6a41891f65b8bae9af0a29e",
+    "tests/production_baseline/solver.py": "9675ad90746c4b75f7441bdfdaaaf09a787eec881d6c063997ec353a9a52facb",
+    "tests/protocol.py": "ebce2ab1197d6f3e68636cd3bfa9751f5aece98912c7438e804e60e3ba3e196e",
+    "tests/reference_eval.py": "98631a14cc95d90247163f84ee90c0ed7507ca7c2f03289b9396ace89aaaef27",
+    "tests/restricted_runner.py": "c3811bdfe7e49e57d9da2316c357c4509355e22f54824dcf0631f5a900d48897",
+    "tests/submission_guard.py": "92e5dc95575a620d8ce3f487a9d47f2bbc840906c5042f376c000d89c80e4444",
+    "tests/test.sh": "a257d98e8d83d7bedc3058a6000c1d2e5a732311dbd64d7eb18269235d7bf25e"
+  },
+  "downloads": [
+    {
+      "path": "environment/problems/visible_baseline_manifest.json",
+      "size": 58356,
+      "git_blob_sha1": "ca9d0c0f025d9dba608ef1a1b21c5b0ee33f51fe"
+    },
+    {
+      "path": "environment/problems/visible_cases.json",
+      "size": 8165,
+      "git_blob_sha1": "4d3d3018c575cc0f918939483d7a3e902d4d6eaf"
+    },
+    {
+      "path": "tests/anchor_inputs.json",
+      "size": 423,
+      "git_blob_sha1": "e49e6491e380d1a1a43a810ed6330b09119cb022"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 525,
+      "git_blob_sha1": "27d84aebb7c460ec6c13e6d4e32571e7b3a099a3"
+    },
+    {
+      "path": "tests/guard_tokens.json",
+      "size": 212,
+      "git_blob_sha1": "a0f6bd91844f521c00d3aea4e66d12c4aaddb284"
+    },
+    {
+      "path": "tests/heldout/baseline_manifest.json",
+      "size": 100975,
+      "git_blob_sha1": "da2a37bc8035ce3ae647fa77d78d0c6057e2a1df"
+    },
+    {
+      "path": "tests/heldout/test_spec.json",
+      "size": 8798,
+      "git_blob_sha1": "063bad2ad8c693994ce7c9482e2a393211f5709d"
+    }
+  ]
+}

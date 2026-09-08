@@ -1,0 +1,17 @@
+/rsi_task/environment/data/visible_cases.json
+/seed/harbor/environment/data/visible_cases.json
+/rsi_task/environment/tdd_runtime/CMakeLists.txt
+/seed/harbor/environment/tdd_runtime/CMakeLists.txt
+/rsi_task/environment/tdd_runtime/LICENSE.TDDLinux
+/seed/harbor/environment/tdd_runtime/LICENSE.TDDLinux
+/rsi_task/environment/tdd_runtime/dd/CMakeLists.txt
+/seed/harbor/environment/tdd_runtime/dd/CMakeLists.txt
+/rsi_task/environment/tdd_runtime/operations/CMakeLists.txt
+/seed/harbor/environment/tdd_runtime/operations/CMakeLists.txt
+/rsi_task/tests/anchors.json
+/rsi_task/tests/heldout/MANIFEST.json
+/rsi_task/tests/heldout/cases.json
+/rsi_task/tests/tdd_runtime/CMakeLists.txt
+/rsi_task/tests/tdd_runtime/LICENSE.TDDLinux
+/rsi_task/tests/tdd_runtime/dd/CMakeLists.txt
+/rsi_task/tests/tdd_runtime/operations/CMakeLists.txt

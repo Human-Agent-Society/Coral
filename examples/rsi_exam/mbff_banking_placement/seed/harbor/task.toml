@@ -1,0 +1,32 @@
+schema_version = "1.3"
+artifacts = ["/app/methods"]
+
+[task]
+name        = "autoresearch-arena/mbff_banking_placement"
+description = "Optimize multibit flip-flop banking and placement to minimize a weighted power/area/timing/displacement cost on industrial-style testcases; graded on sealed hidden cases, lower is better."
+authors     = [{ name = "xingbo du" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "public"
+cpus       = 8
+memory_mb  = 32768
+storage_mb = 20480
+gpus       = 0
+
+[verifier]
+timeout_sec      = 7200.0
+environment_mode = "separate"
+
+[verifier.environment]
+network_mode = "no-network"
+memory_mb    = 49152
+cpus         = 8
+
+[scoring]
+metric = "mean_final_score"
+direction = "lower"

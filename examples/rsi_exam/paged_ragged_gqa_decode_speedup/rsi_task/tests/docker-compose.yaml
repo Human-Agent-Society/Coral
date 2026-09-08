@@ -1,0 +1,15 @@
+services:
+  main:
+    # A CPU quota is not enough: sub-0.1 ms event dispatch needs a dedicated
+    # core, and grade.py asserts sched affinity == REQUIRED_CPU_AFFINITY.
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "$HARBOR_GPU_DEVICE"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_VISIBLE_DEVICES: "0"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["$HARBOR_GPU_DEVICE"]
+              capabilities: [gpu]

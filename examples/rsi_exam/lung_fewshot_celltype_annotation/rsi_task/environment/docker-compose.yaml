@@ -1,0 +1,42 @@
+services:
+  main:
+    cap_add: [SYS_ADMIN, NET_ADMIN, SYS_PTRACE]
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
+    environment:
+      ARA_CODEX_RUNTIME_UID: "61124"
+      ARA_CODEX_RUNTIME_GID: "61124"
+      ARA_CODEX_RUNTIME_HOME: "/home/ara-codex"
+      ARA_CODEX_SCRUB_AUTH_AFTER_START: "1"
+    volumes:
+      - cell-visible-socket:/app/.visible-evaluator:ro
+    depends_on:
+      visible-evaluator:
+        condition: service_healthy
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE:-0}"]
+              capabilities: [gpu]
+
+  visible-evaluator:
+    build:
+      context: .
+      dockerfile: Dockerfile.evaluator
+    network_mode: "none"
+    environment:
+      VISIBLE_QUERY_BUDGET: "128"
+      VISIBLE_SCORE_DECIMALS: "4"
+      VISIBLE_MIN_CHANGED_PREDICTIONS: "40"
+    volumes:
+      - cell-visible-socket:/run/cell-visible
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pathlib,stat; p=pathlib.Path('/run/cell-visible/evaluator.sock'); raise SystemExit(0 if p.exists() and stat.S_ISSOCK(p.stat().st_mode) else 1)"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  cell-visible-socket:

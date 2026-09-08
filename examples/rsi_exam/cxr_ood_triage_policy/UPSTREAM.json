@@ -1,0 +1,47 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "cxr_ood_triage_policy",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/cxr_ood_triage_policy",
+  "sha256": {
+    "environment/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "environment/Dockerfile": "c5d212ac264073f961e73302db22d8f8c4de8c10738cf371d9e19e8cd20d1d26",
+    "environment/data/score_schema.yaml": "40ed537f2083071cd1b867a7fdc1ba5c5c215624bf14714f7c22abe965e65f91",
+    "environment/methods/main/solver.py": "691ef11fd453490599c903ad6c9a2b25f5e8b6ec38e2177d350b8673c7a099ec",
+    "environment/selfcheck.py": "ac701a3c9bb7c045d28e4ab228e8813fb3e96e64f78ceb3e3e65d5eb1a4b7338",
+    "instruction.md": "ac2797d366f5755ab785a13a05434aaa7721c2b868dd5dc160406e45a56de348",
+    "task.toml": "513c4eddcef9bef9adc1690693c4262a781c6abfbb97e6daa05efb5cf2e9a8b7",
+    "tests/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "tests/Dockerfile": "061a39b82182a90540812332db940c6ce6f35ab3e712478bebc06b2ba27d777a",
+    "tests/child_triage.py": "10cbb7ab510aa4417923fc1491a2bd191e27769b4a2bcf113702c76e9ec6f38c",
+    "tests/grade.py": "ed34538f65ca8014b6e93efa7c0088fb1753ad658b0bb7ec9a034a5b1a9e94e9",
+    "tests/test.sh": "cdec620cc10f688278c7250e9c1721b9fe01e710257be2f5afc6ca59a93f9924"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/calibration.jsonl",
+      "size": 858959,
+      "git_blob_sha1": "53aa0b775f1f95b06c2686a61a4c688ce8304353"
+    },
+    {
+      "path": "environment/data/grade.jsonl",
+      "size": 435907,
+      "git_blob_sha1": "01896738a249e08bcfff9f008fa74b5ca48058dd"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 96,
+      "git_blob_sha1": "476986365bd176f1dd756ba14f6bda84b56c6ac0"
+    },
+    {
+      "path": "tests/heldout/calibration.jsonl",
+      "size": 858959,
+      "git_blob_sha1": "53aa0b775f1f95b06c2686a61a4c688ce8304353"
+    },
+    {
+      "path": "tests/heldout/grade.jsonl",
+      "size": 871858,
+      "git_blob_sha1": "8d53185bd663c6e522710e005fc2a0147a652652"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+schema_version = "1.3"
+artifacts = ["/app/methods/main"]
+
+[task]
+name = "autoresearch-arena/protein_ligand_cofolding"
+description = "Improve an inference-only protein-ligand co-folding pipeline; the isolated verifier re-runs submitted source on a sealed structural split and scores physically valid, geometrically accurate poses."
+authors = [{ name = "aiminglab" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 7200.0
+network_mode = "public"
+cpus = 8
+memory_mb = 65536
+storage_mb = 61440
+workdir = "/app"
+
+[verifier]
+timeout_sec = 46800.0
+environment_mode = "separate"
+
+[verifier.environment]
+build_timeout_sec = 7200.0
+network_mode = "no-network"
+cpus = 8
+memory_mb = 65536
+storage_mb = 61440
+workdir = "/tests"
+
+[scoring]
+metric = "pb_valid_success_rate"
+direction = "higher"

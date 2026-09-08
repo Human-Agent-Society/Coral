@@ -1,0 +1,23 @@
+services:
+  main:
+    cap_add: [SYS_ADMIN]
+    ulimits:
+      nproc: 512
+      nofile:
+        soft: 8192
+        hard: 8192
+    security_opt: [seccomp=unconfined, apparmor=unconfined]
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    deploy:
+      resources:
+        limits:
+          pids: 512
+          cpus: 8
+          memory: 65536M
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${HARBOR_GPU_DEVICE:-0}"]
+              capabilities: [gpu]

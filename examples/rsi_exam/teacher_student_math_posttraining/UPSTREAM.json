@@ -1,0 +1,43 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "teacher_student_math_posttraining",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/teacher_student_math_posttraining",
+  "sha256": {
+    "environment/.dockerignore": "67ee070027d31f29d03bb7a719d4c1e886a7be5c513c1c09bfe0af5bbd22c648",
+    "environment/Dockerfile": "e43562f1891e087212137f20676e87dd391ad81995bdf4f81affdb33a77d1d2b",
+    "environment/docker-compose.yaml": "6fa1afdeec8b336a48b17e44e4d69cf28cd4abf88b0da8ecd7a805c5364420aa",
+    "environment/evaluator/Dockerfile": "86d195b8ed645db4eece8c2f7ce14dd876f237795ae1d9cdce6513880c884821",
+    "environment/evaluator/visible_server.py": "13dd05115c4facc249268c263c68c836e0104bfff0f8bc56cef81d98bac6177c",
+    "environment/methods/main/README.md": "2749ca7257597d565b54a8eaa689dacb8af7bb497cf8fd77a8f457a86daf9a3d",
+    "environment/methods/main/build_answer_sft.py": "cb84096c628778d9ae7d8853e1d3193856e3b9202bb5958b7ff8ddf12781700e",
+    "environment/methods/main/common.py": "984d8ac569ee1fd6eea921cb40cdf5595461675780ca5dc5cac9cb74cddb0cb4",
+    "environment/methods/main/eval_visible.py": "ac0c079c6e7eb886922963163cefa82e07ff7965fe6ec2d20129eabcf3f54f3f",
+    "environment/methods/main/infer_visible.py": "801a122bdf797d9066c83d511ec9e6b2576a27b2ecaca103287fdf3b35bfd81d",
+    "environment/methods/main/merge.py": "e3d3c5d3621f20820f31ba3a910cff20d489f36bd0ec315a230941e68cce4361",
+    "environment/methods/main/sft_answer.yaml": "399b7be9344bdfa98595840ce5c90863cc08c6e62db8ae3e071729ca462f5610",
+    "environment/methods/main/teacher_control.sh": "065855b627d150977611823b5149d33e237f9d8e63f51549afa9cca33d7f3e01",
+    "environment/methods/main/train.sh": "53fa5ec8a33edfc7cb8092e74e4758d8fede34d085314177eee70038b92180b5",
+    "environment/prepare_assets.py": "4156bc1beab9741ac25ba1f1fb9ea91b79b292d54196604ed16f13e6891112f3",
+    "environment/requirements.train.lock": "88adfcc19ec1f47e94ca2b08d3cbcb11f677fa87f97a502d89b58b79d3e64565",
+    "environment/requirements.vllm.lock": "0e5ffe1b7635e67641fc950e223b0d31b903f87aa3ee285336e9ed56b73bd6af",
+    "environment/selfcheck.py": "f1d4c20d7c9dc650f3e8e6bfad5314b908061400aad156b7ee2b5ea5f039f506",
+    "environment/visible_client.py": "9a0d92abff50cc69086d2a0f3bc8a7cba9cf5000db9bd5f109354826543d7d0e",
+    "instruction.md": "9c4e694bab9e5db86146eb05aba14b3529f154d236ada63ef59f18e6d7549968",
+    "task.toml": "670b92dfc921f5ae0fc9bbda0cff8b155dcef825404d6c1efe8e397771a1fec8",
+    "tests/.dockerignore": "81ee31e4dea6a5ff8242bd1908e75bd2d8af2ca1415adb156b564955a2ef063f",
+    "tests/Dockerfile": "6fbfb8de7992aefce5e44a832010562e66f8f895491d3b7ad89ff51eefe34132",
+    "tests/docker-compose.yaml": "bb7348e1f7a2a5b990eed34004742b17d821e6cdf23ba01e12839663b92381ca",
+    "tests/grade.py": "d429efd190fdc4f8894e3db3ba5c33f44abecc095dd2fa026bd9f8347d998e32",
+    "tests/prepare_hidden.py": "345b9b073c6d605e2d87dcdfacd1b1e44152bea21351711a7b1507a302ba3fce",
+    "tests/reward_mapping.py": "f71a1d044b15a75575535f787a5003b17e98d157cbe34a9b3ab4b9ed09ae8531",
+    "tests/test.sh": "a050331b56a3885764fcaf46bff3564f0e9e8aa80c1f3e98768c9c0731862b54"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchors.json",
+      "size": 44,
+      "git_blob_sha1": "f93b68274bb6f8d89df493b42596e58a44ae6643"
+    }
+  ]
+}

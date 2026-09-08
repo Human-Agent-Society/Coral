@@ -1,0 +1,46 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "splash_attention_strata_speedup",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/splash_attention_strata_speedup",
+  "sha256": {
+    "environment/Dockerfile": "82300b9008e65376c42ef657248938c6bf43942f32d7d68cf1cf75007601de02",
+    "environment/docker-compose.yaml": "cd82093b334d43306e81912643b4b0491781df4f4671b24a8a3cdece01d91a9f",
+    "environment/eval/attn_eval.py": "7ac924a23571711906293590a91f4c5c068f2fe857342884be2b93b302e3a06b",
+    "environment/eval/baseline_impl.py": "e07b3dd3c5fcfdcd5a2e29ff83aac5c59ffff5cb40368f41872095d5da917850",
+    "environment/methods/main/attention.py": "c134c2dec898e4c06d83240f8909484564c119d5e3ec44fd710c8c0aada509ad",
+    "environment/selfcheck.py": "c0ffaf8b35316e813b2567ca9f7731d6c6d848e31ede675f45854ea5e82af260",
+    "instruction.md": "473969dd45ebea361427047017c21be17fc8f22b9f5a0396c11aa42b64121422",
+    "task.toml": "aa153c73a4343c6d6e8c143bdb736158a1e8b52212f1334b4f53c46d50ad9a87",
+    "tests/Dockerfile": "d9190c9a165e191d616a6a3bd0d68445caa8fb27b2316ebcc5a3502c3ac48164",
+    "tests/child_eval.py": "14b1e9de3272662f41c4f5ef6850068d409c249df1af35a99b59f374f0989bbb",
+    "tests/docker-compose.yaml": "2cc421cd0212a2210bc34e9efe74645d60e8799e18ed62377f97e7bd7e89458f",
+    "tests/eval/attn_eval.py": "7ac924a23571711906293590a91f4c5c068f2fe857342884be2b93b302e3a06b",
+    "tests/grade.py": "2579cb55b554db3311795fec3d03ddf3544ba25fa620b4b53870c2a43a32ddf2",
+    "tests/restricted_runner.py": "d3236bec6e6596f20001718b35b2f8182f0e5a8862ce0a549189c8adf7d28deb",
+    "tests/submission_guard.py": "d1a3d1e77201a48cb35c8376c1b88431d3c2498f2dd817968840070ac31f3794",
+    "tests/test.sh": "e49f268c8b892f6f11c2b7c53f9a6c93a1b256fd0677f9db0989708e61620cc8"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/visible_strata.json",
+      "size": 1302,
+      "git_blob_sha1": "65b5f7a87f7733260492aaf26713a85fab27c970"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 850,
+      "git_blob_sha1": "eda6e468b8d083e146fc923fd780ad9a9d680982"
+    },
+    {
+      "path": "tests/baseline_manifest.json",
+      "size": 1173,
+      "git_blob_sha1": "0114451d19148dfcdf1c8b848acdd6aa1a9b2245"
+    },
+    {
+      "path": "tests/heldout_strata.json",
+      "size": 1688,
+      "git_blob_sha1": "1fb309540d54b19ee6399020581a23be542b489c"
+    }
+  ]
+}

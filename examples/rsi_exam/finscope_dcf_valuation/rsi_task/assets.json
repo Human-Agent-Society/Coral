@@ -1,0 +1,42 @@
+[
+  {
+    "path": "environment/data/calibration_truth.csv",
+    "size": 9281,
+    "git_blob_sha1": "222a49bb1019efd34fa4399f8f42a545adee6518"
+  },
+  {
+    "path": "environment/data/coverage.csv",
+    "size": 22457,
+    "git_blob_sha1": "c942178d9fd5ddbb48f8a47a7f02205953cc7b28"
+  },
+  {
+    "path": "environment/data/fundamentals.csv",
+    "size": 61069,
+    "git_blob_sha1": "64202f57d68a19d1bc3e2e49dfac0f1f362855fc"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 51,
+    "git_blob_sha1": "6325a42d1f89d05693aae516dcb03d6e5c19dccb"
+  },
+  {
+    "path": "tests/features/calibration_truth.csv",
+    "size": 9281,
+    "git_blob_sha1": "222a49bb1019efd34fa4399f8f42a545adee6518"
+  },
+  {
+    "path": "tests/features/coverage.csv",
+    "size": 22457,
+    "git_blob_sha1": "c942178d9fd5ddbb48f8a47a7f02205953cc7b28"
+  },
+  {
+    "path": "tests/features/fundamentals.csv",
+    "size": 61069,
+    "git_blob_sha1": "64202f57d68a19d1bc3e2e49dfac0f1f362855fc"
+  },
+  {
+    "path": "tests/heldout/holdout_truth.json",
+    "size": 166707,
+    "git_blob_sha1": "b5f8d5b8fca8d46e92706764adbe2785fed6b7f9"
+  }
+]

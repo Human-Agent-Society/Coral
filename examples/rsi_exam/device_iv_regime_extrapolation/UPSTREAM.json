@@ -1,0 +1,45 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "device_iv_regime_extrapolation",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/device_iv_regime_extrapolation",
+  "sha256": {
+    "environment/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "environment/Dockerfile": "71944cc96b32113d70744afe1a51066a9f7fd1d8e4fec9ab0fafe77fc87780c3",
+    "environment/data/practice/DATA_CARD.md": "5c8049f81b5e30197cfd0ba26569047ad986373c854469ef39dc844114576119",
+    "environment/examples/devsim_diode_demo.py": "1e0df42e0f33d81ff92a1db61bf412ee9f3cc1111dcf030ba75fe2715f5e1fbd",
+    "environment/methods/main/solver.py": "188d13157cf7e1ca6352ebb40259558ba66077175138b7a3c83ba51a4cb4c817",
+    "environment/run_solver.py": "10a1fb897ac9a1bbb48fad7159d716339e37c6a626eafb7b3e544c7745b5c374",
+    "environment/selfcheck.py": "44c155ea8e0909f575ca29b952bc09e21ea01af87aa042932d74a18c45d4446c",
+    "instruction.md": "812aa6cbe8297f599df19e6e612044d2f4d338da32241859933b9c6330c5d9f4",
+    "task.toml": "f8162ce9c6f43bda298c8cdd8680582f798ce0327e00d692e34cf16d39730f02",
+    "tests/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "tests/Dockerfile": "8f20e4bfb95b7b7f271ff1453de4e511a0188f8605b0945e273f4a85e3375a13",
+    "tests/grade.py": "b7f7f9171c38682cdcb83d4a8938812a09012c9f8a44c1511649d88c19519ac5",
+    "tests/heldout/dd_core.py": "f1a1d8b1c3e7d1865833691c31530cdc653e996aa857c91a397d2f3c549e82ab",
+    "tests/heldout/heldout_gen.py": "09dc4fa1771c49613a88865902f66c044166f52046e9fffcccbe08633c174cd8",
+    "tests/test.sh": "5e94e700f7c32f3ad03b60fa311c05a6e7866b7f2fe57af057379def1b4a64eb"
+  },
+  "downloads": [
+    {
+      "path": "environment/data/practice/instances.json",
+      "size": 87628,
+      "git_blob_sha1": "0206be02e6b2ba290c8b46deb1359380c9c56671"
+    },
+    {
+      "path": "environment/data/qualification/records.json",
+      "size": 54331,
+      "git_blob_sha1": "f5ab3fe23f3086495d14969da4f50e72bc47718a"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 296,
+      "git_blob_sha1": "b766bd7d59e369380e59b40a60a0b372f55ec8f5"
+    },
+    {
+      "path": "tests/heldout/instances_sealed.json",
+      "size": 62351,
+      "git_blob_sha1": "8806168d30616a147090095c4522768866fb686c"
+    }
+  ]
+}

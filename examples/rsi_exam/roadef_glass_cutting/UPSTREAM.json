@@ -1,0 +1,285 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "roadef_glass_cutting",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/roadef_glass_cutting",
+  "sha256": {
+    "environment/Dockerfile": "7929a9c40a32a5231be120d09cfc5011d7d6feaa43cadb9eeef43ad687f38ec3",
+    "environment/build_assets.sh": "3f2d9d486b4e8cfb738fc73d99e57ac80ff0db99f7f5ac1378f26d8dd2231a2e",
+    "environment/checker_src/include/GlassDefect.h": "7b3ceaeb0790985c6a70bb2c0447da36f4ccf17362022693ba0b0e7692be5d26",
+    "environment/checker_src/include/GlassItem.h": "3c70755260a504fda8930901337b3b7d1a017148dcd563e04d914c7b46625c9f",
+    "environment/checker_src/include/GlassNode.h": "01cc87d196b879ed4f840b7e13ffc21266b5d905e2162b2bc4f4f400804059e1",
+    "environment/checker_src/include/GlassPlate.h": "7155a5cd5fccc4785a4238999b3a16af2669d28eb1a59d136b936738d81eac4b",
+    "environment/checker_src/include/GlassStack.h": "c7132893c07d1ef22687576ec819650fc7a2a09a8b7846c38f95606f57e82afd",
+    "environment/checker_src/include/main.h": "0ede88d16e87898e0d61ca12589dc19ec99b68731442dcfddf57f97cfbbe755e",
+    "environment/checker_src/src/GlassDefect.cpp": "c058c9adb22553dffc60a679b67aba271246364d282258ee452a5df6ea4d91b8",
+    "environment/checker_src/src/GlassItem.cpp": "1ad6b402f8138964377512fc50bb0823a53e64731d540ab104eb43f82aeb2114",
+    "environment/checker_src/src/GlassNode.cpp": "0a26f2171b514dd4da4ec0b2e36d3afb5d225403ae9296a7b567464bc3a42e79",
+    "environment/checker_src/src/GlassPlate.cpp": "1dc378f9d6fb27ac7353ed2930e20935e45e3a1731e4d45e759ef775164ad206",
+    "environment/checker_src/src/GlassStack.cpp": "6b0a667a58f8d9ac932e4bb3e36ad66365edd28b6bc6c084da12443f5ca98a02",
+    "environment/checker_src/src/main.cpp": "a667df5d071a9c1c9762b5d051e391a49b564074fefdbee13007fcd9ab600a2c",
+    "environment/methods/main/run.sh": "99b0b8738558a3b69a2e542076c537a3ca28b751a3d23087a00bad31ac3b2cd1",
+    "environment/methods/main/solution.py": "22120fac26bd8c2463ce3cfcf5c4f6cc388ed1f87c9090de6bd31cbd19272278",
+    "environment/selfcheck.py": "84e88d03a624ba9974ea0ce1892790d67bfd21cc8fe8bb45e8ea1499ffa0240a",
+    "instruction.md": "8e7576a61692ca7adbb1e0fef2c804272bdce50ce983748068d7662563d1e14a",
+    "task.toml": "796560a792fde0bb1b4f5cb77da6619d67be4e73c7d0c1b9a162940c6ff1fb9d",
+    "tests/Dockerfile": "6700fc67be2f3ad56a2217d618f4eb0c588e5761c6893b6b97a1feab87e71df1",
+    "tests/build_heldout.sh": "1d76c8976104bbf81e07f4db912bf7b90993932ebcdfa65ba4717f2348243943",
+    "tests/checker_src/include/GlassDefect.h": "7b3ceaeb0790985c6a70bb2c0447da36f4ccf17362022693ba0b0e7692be5d26",
+    "tests/checker_src/include/GlassItem.h": "3c70755260a504fda8930901337b3b7d1a017148dcd563e04d914c7b46625c9f",
+    "tests/checker_src/include/GlassNode.h": "01cc87d196b879ed4f840b7e13ffc21266b5d905e2162b2bc4f4f400804059e1",
+    "tests/checker_src/include/GlassPlate.h": "7155a5cd5fccc4785a4238999b3a16af2669d28eb1a59d136b936738d81eac4b",
+    "tests/checker_src/include/GlassStack.h": "c7132893c07d1ef22687576ec819650fc7a2a09a8b7846c38f95606f57e82afd",
+    "tests/checker_src/include/main.h": "0ede88d16e87898e0d61ca12589dc19ec99b68731442dcfddf57f97cfbbe755e",
+    "tests/checker_src/src/GlassDefect.cpp": "c058c9adb22553dffc60a679b67aba271246364d282258ee452a5df6ea4d91b8",
+    "tests/checker_src/src/GlassItem.cpp": "1ad6b402f8138964377512fc50bb0823a53e64731d540ab104eb43f82aeb2114",
+    "tests/checker_src/src/GlassNode.cpp": "0a26f2171b514dd4da4ec0b2e36d3afb5d225403ae9296a7b567464bc3a42e79",
+    "tests/checker_src/src/GlassPlate.cpp": "1dc378f9d6fb27ac7353ed2930e20935e45e3a1731e4d45e759ef775164ad206",
+    "tests/checker_src/src/GlassStack.cpp": "6b0a667a58f8d9ac932e4bb3e36ad66365edd28b6bc6c084da12443f5ca98a02",
+    "tests/checker_src/src/main.cpp": "a667df5d071a9c1c9762b5d051e391a49b564074fefdbee13007fcd9ab600a2c",
+    "tests/grade.py": "d4f38b23a81936104f3ae244aa4f4fd52228fb1b20cd8da7b98cb9232739443b",
+    "tests/test.sh": "cc99e656f1aeb7ddf7ae0f53758a2cb89f8107e5c4cb9811981981c5f2b4e0b2"
+  },
+  "downloads": [
+    {
+      "path": "environment/assets_manifest.json",
+      "size": 836,
+      "git_blob_sha1": "d2a4c40f6c92e8d460378fa69bdf6049c002f93f"
+    },
+    {
+      "path": "environment/tools/instances/A11_batch.csv",
+      "size": 1473,
+      "git_blob_sha1": "bb562d73c925f32608ae3d2d3de2ce57b866e078"
+    },
+    {
+      "path": "environment/tools/instances/A11_defects.csv",
+      "size": 13323,
+      "git_blob_sha1": "22f30565b1474ae0d15b7d012fb3f7e67e34ff1c"
+    },
+    {
+      "path": "environment/tools/instances/A12_batch.csv",
+      "size": 868,
+      "git_blob_sha1": "ab76bfd36c2edb0fc504d27800651f09bf9c77f5"
+    },
+    {
+      "path": "environment/tools/instances/A12_defects.csv",
+      "size": 6114,
+      "git_blob_sha1": "942db009828c5611d8d2c42e004c153643699739"
+    },
+    {
+      "path": "environment/tools/instances/A14_batch.csv",
+      "size": 6640,
+      "git_blob_sha1": "7163845413284c6e4e340fa17cbe53c67a084fb0"
+    },
+    {
+      "path": "environment/tools/instances/A14_defects.csv",
+      "size": 5878,
+      "git_blob_sha1": "4bac4c70cc128046e5ee1b5cdad35b3276064dcc"
+    },
+    {
+      "path": "environment/tools/instances/A16_batch.csv",
+      "size": 682,
+      "git_blob_sha1": "daa92361352715337c67ede60cc178137e99cf6e"
+    },
+    {
+      "path": "environment/tools/instances/A16_defects.csv",
+      "size": 8875,
+      "git_blob_sha1": "ada4dcef16e1f09e7a1f62170651839145479053"
+    },
+    {
+      "path": "environment/tools/instances/A17_batch.csv",
+      "size": 398,
+      "git_blob_sha1": "240a647d3a5156370b55339908a1816ada4d722d"
+    },
+    {
+      "path": "environment/tools/instances/A17_defects.csv",
+      "size": 7933,
+      "git_blob_sha1": "86d0fffa0378fb313611eda7ea691a79944993c6"
+    },
+    {
+      "path": "environment/tools/instances/A18_batch.csv",
+      "size": 1273,
+      "git_blob_sha1": "798561b3bac629d8edcd78dafc48b6e15c6e0932"
+    },
+    {
+      "path": "environment/tools/instances/A18_defects.csv",
+      "size": 10989,
+      "git_blob_sha1": "0bf9c8cc37bdda7d25bec60a938f13e9c4358625"
+    },
+    {
+      "path": "environment/tools/instances/A1_batch.csv",
+      "size": 126,
+      "git_blob_sha1": "d26de1cdfdbd68bee2b7c33a1fd50b90a81d33b6"
+    },
+    {
+      "path": "environment/tools/instances/A1_defects.csv",
+      "size": 8497,
+      "git_blob_sha1": "7fc62942a5b09905d03ce1a554a8651046c7b662"
+    },
+    {
+      "path": "environment/tools/instances/A4_batch.csv",
+      "size": 1167,
+      "git_blob_sha1": "4ed1213a56bdc0809df264ee8c2db6756416e3df"
+    },
+    {
+      "path": "environment/tools/instances/A4_defects.csv",
+      "size": 8579,
+      "git_blob_sha1": "03873dcd9dd2496d41b2c1aeb775e13f01d3fb8e"
+    },
+    {
+      "path": "environment/tools/instances/A8_batch.csv",
+      "size": 2297,
+      "git_blob_sha1": "5f9045fc1324fe1aea398fd737920070331107a5"
+    },
+    {
+      "path": "environment/tools/instances/A8_defects.csv",
+      "size": 7921,
+      "git_blob_sha1": "f6066569d01b3f33274388c52dfbf3a74eda6880"
+    },
+    {
+      "path": "environment/tools/instances/A9_batch.csv",
+      "size": 1081,
+      "git_blob_sha1": "f5fe14b7d6f8a33776d50e3630236e9f64f9d0c8"
+    },
+    {
+      "path": "environment/tools/instances/A9_defects.csv",
+      "size": 3789,
+      "git_blob_sha1": "2266375847340052a1dc5acc74cf044bbdee7f65"
+    },
+    {
+      "path": "environment/tools/instances/global_param.csv",
+      "size": 115,
+      "git_blob_sha1": "aa625d85ad63e7c8438ca77364a45ff39c1b97f1"
+    },
+    {
+      "path": "environment/tools/visible_instances.txt",
+      "size": 36,
+      "git_blob_sha1": "de8d04daea2ed311d9973570a9d3f487ac085f7c"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 61,
+      "git_blob_sha1": "19f687a797af0da675860ca40c3078ca910c39d4"
+    },
+    {
+      "path": "tests/heldout/global_param.csv",
+      "size": 115,
+      "git_blob_sha1": "aa625d85ad63e7c8438ca77364a45ff39c1b97f1"
+    },
+    {
+      "path": "tests/heldout/in/A10_batch.csv",
+      "size": 1500,
+      "git_blob_sha1": "3242c871ae74ede321055e115e81c2f351b759b6"
+    },
+    {
+      "path": "tests/heldout/in/A10_defects.csv",
+      "size": 6143,
+      "git_blob_sha1": "f4ffc557ddecd51b99eb0c354f381ac9c0137298"
+    },
+    {
+      "path": "tests/heldout/in/A13_batch.csv",
+      "size": 4918,
+      "git_blob_sha1": "b174c6f254dc4c332adcea5f1e00a73634587e22"
+    },
+    {
+      "path": "tests/heldout/in/A13_defects.csv",
+      "size": 7726,
+      "git_blob_sha1": "02936db39b0bb6ebd33f0bd0bdffab1bb16911ef"
+    },
+    {
+      "path": "tests/heldout/in/A15_batch.csv",
+      "size": 7254,
+      "git_blob_sha1": "40c4df4144afa0b38f6d9c0871bc71d495151320"
+    },
+    {
+      "path": "tests/heldout/in/A15_defects.csv",
+      "size": 6338,
+      "git_blob_sha1": "0f8127831533fe3c155703b479742881164caf10"
+    },
+    {
+      "path": "tests/heldout/in/A19_batch.csv",
+      "size": 820,
+      "git_blob_sha1": "144b6d6f3d3723b296c6636c7146d49094994412"
+    },
+    {
+      "path": "tests/heldout/in/A19_defects.csv",
+      "size": 5947,
+      "git_blob_sha1": "71d2d8913b4e93103fe62dbc02d209d1e602099b"
+    },
+    {
+      "path": "tests/heldout/in/A20_batch.csv",
+      "size": 326,
+      "git_blob_sha1": "80fc833349916663d881d44fe1af338e550c6e28"
+    },
+    {
+      "path": "tests/heldout/in/A20_defects.csv",
+      "size": 3846,
+      "git_blob_sha1": "da3195ccb8be625a895a142c5d04443b7e838a43"
+    },
+    {
+      "path": "tests/heldout/in/A2_batch.csv",
+      "size": 1300,
+      "git_blob_sha1": "e1f3195e0cca54f0c7a634d672f2da456cd3bdce"
+    },
+    {
+      "path": "tests/heldout/in/A2_defects.csv",
+      "size": 4426,
+      "git_blob_sha1": "7c7c27a22753983d260a2b6a5ec73de964579cdd"
+    },
+    {
+      "path": "tests/heldout/in/A3_batch.csv",
+      "size": 1167,
+      "git_blob_sha1": "4ed1213a56bdc0809df264ee8c2db6756416e3df"
+    },
+    {
+      "path": "tests/heldout/in/A3_defects.csv",
+      "size": 4250,
+      "git_blob_sha1": "930d058d4ea39bb0e34242190164408e6db5ca86"
+    },
+    {
+      "path": "tests/heldout/in/A5_batch.csv",
+      "size": 1673,
+      "git_blob_sha1": "dccfbf6a51d2841d856df9d5eec1ae8dcb12525a"
+    },
+    {
+      "path": "tests/heldout/in/A5_defects.csv",
+      "size": 4724,
+      "git_blob_sha1": "6d0e2fd9810f55e85b93d566c61b46b599affe4e"
+    },
+    {
+      "path": "tests/heldout/in/A6_batch.csv",
+      "size": 662,
+      "git_blob_sha1": "af30e9e5074d58b21751da60130366036b4865f8"
+    },
+    {
+      "path": "tests/heldout/in/A6_defects.csv",
+      "size": 5193,
+      "git_blob_sha1": "45da4c2c9d0ebb3a036ff14e1cd7580d360bea2b"
+    },
+    {
+      "path": "tests/heldout/in/A7_batch.csv",
+      "size": 997,
+      "git_blob_sha1": "614d81c991c0cdc6e253e549b1d5dcb5482a971d"
+    },
+    {
+      "path": "tests/heldout/in/A7_defects.csv",
+      "size": 3842,
+      "git_blob_sha1": "91760da5254f5160a4165e3f55c7d84ea39f54e4"
+    },
+    {
+      "path": "tests/heldout/ref_lengths.json",
+      "size": 158,
+      "git_blob_sha1": "fdf6830d602552c91a49668f22401a5da1335d77"
+    },
+    {
+      "path": "tests/heldout_instances.txt",
+      "size": 35,
+      "git_blob_sha1": "67bc7c5c1eb4a2e33b52571fd518a7a3fa848841"
+    },
+    {
+      "path": "tests/heldout_manifest.json",
+      "size": 2537,
+      "git_blob_sha1": "98499715e1293fdd22d939f90095803b1c39d5f1"
+    }
+  ]
+}

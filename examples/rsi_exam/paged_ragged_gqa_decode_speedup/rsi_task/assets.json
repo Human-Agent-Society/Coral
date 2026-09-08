@@ -1,0 +1,52 @@
+[
+  {
+    "path": "environment/problems/visible_spec.json",
+    "size": 5756,
+    "git_blob_sha1": "ecf6c5978876d57de4ccef27aa6fb8cd278f5f82"
+  },
+  {
+    "path": "tests/anchor_inputs.json",
+    "size": 495,
+    "git_blob_sha1": "247e9c8647e8648d787925cc8a417889f392b49c"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 492,
+    "git_blob_sha1": "ca60740a9d6488d769618572dd692d35ffeb4fe4"
+  },
+  {
+    "path": "tests/calibration/split_manifest.json",
+    "size": 594,
+    "git_blob_sha1": "58836c34cdf7252df270e822304ee948fa83985b"
+  },
+  {
+    "path": "tests/calibration/test_spec.json",
+    "size": 5796,
+    "git_blob_sha1": "a35525fd0f90a2be49542823c72dae3f4ada8ec8"
+  },
+  {
+    "path": "tests/heldout/anchors.json",
+    "size": 386,
+    "git_blob_sha1": "a4d75477338de7d6541fe57d0a7cd7fed818cc6a"
+  },
+  {
+    "path": "tests/heldout/benchmark_context.json",
+    "size": 1598,
+    "git_blob_sha1": "b079075bf948fabd3a59089dfaf6a94afbf22ad7"
+  },
+  {
+    "path": "tests/heldout/split_manifest.json",
+    "size": 500,
+    "git_blob_sha1": "0c6a9f323afca2fd0fac891d807a54ba9e60890e"
+  },
+  {
+    "path": "tests/heldout/test_spec.json",
+    "size": 7324,
+    "git_blob_sha1": "a76f51761cf8a76056b6f4fe00fe25f28d97564d"
+  },
+  {
+    "path": "tests/visible_spec.json",
+    "size": 5756,
+    "git_blob_sha1": "ecf6c5978876d57de4ccef27aa6fb8cd278f5f82"
+  }
+]

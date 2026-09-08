@@ -1,0 +1,6 @@
+# Keep __pycache__ out of the build context: a .pyc caches the full text of its .py,
+# so a 0400 sealed source would be readable again through its 0644 .pyc.
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo

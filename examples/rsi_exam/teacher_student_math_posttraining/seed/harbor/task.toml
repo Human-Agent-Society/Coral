@@ -1,0 +1,42 @@
+schema_version = "1.3"
+artifacts = ["/app/submission", "/app/methods", "/app/experiment_log.md"]
+
+[task]
+name = "autoresearch-arena/teacher_student_math_posttraining"
+description = "Post-train a fixed Qwen3-1.7B Base student with a fixed 8B teacher and a sanitized mathematical-reasoning corpus; submit merged model weights scored by sealed exact-answer accuracy."
+authors = [{ name = "aiminglab" }]
+
+[agent]
+timeout_sec = 43200.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 14400.0
+network_mode = "public"
+cpus = 8
+memory_mb = 98304
+storage_mb = 131072
+
+[environment.env]
+HF_HUB_OFFLINE = "1"
+HF_DATASETS_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[verifier]
+timeout_sec = 7200.0
+environment_mode = "separate"
+cpus = 8
+memory_mb = 65536
+storage_mb = 32768
+
+[verifier.environment]
+network_mode = "no-network"
+cpus = 8
+memory_mb = 65536
+storage_mb = 32768
+
+[scoring]
+metric = "sealed_exact_integer_accuracy"
+direction = "higher"

@@ -1,0 +1,93 @@
+task:
+  name: rsi-exam-legal_matter_caseload_regulatory
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Answer legal questions\
+    \ from the underlying case files\n\nYou are the analyst covering six unrelated legal matters. Each\
+    \ has its own folder\nof case documents under `tools/world_corpus/`:\n\n| folder | matter |\n|---|---|\n\
+    | `w421_telemarketing` | Senior Living Lending \u2014 TCPA / TSR telemarketing compliance, mini-TCPA\
+    \ state laws, class actions |\n| `w434_spinoff` | Harborview \u2014 spinoff transaction, cross-border\
+    \ data transfer, SPA indemnification |\n| `w_jv_antislapp` | BlueAnchor / BlueLNG JV \u2014 JV agreement\
+    \ terms, anti-SLAPP, shipyard fire and delay |\n| `w423_gdpr` | Northstar \u2014 GDPR compliance,\
+    \ international transfers, breach notification |\n| `w420_druglabel` | Livyra \u2014 FDA drug labelling\
+    \ changes, adverse-event reporting |\n| `w416_tariff` | TAC \u2014 tariffs, Master Supply Agreement,\
+    \ force majeure under the UCC |\n\n1,000+ documents in total. Task names are prefixed with their matter,\
+    \ e.g.\n`w421_telemarketing/World421_AP_02`.\n\nThere are two sets of questions, and **you are expected\
+    \ to work both of them in\nfull**.\n\n**18 visible questions \u2014 3 per matter.** Answer every one\
+    \ of them and submit\nthrough `matter`, which replies with a bare score like `4/6`. It never tells\
+    \ you\n*which* criteria you met, and never shows you the criteria themselves. You have\n**90 submissions\
+    \ total \u2014 five per visible question** \u2014 so you can revise and\nresubmit. **Your job on these\
+    \ is to push every one of them as high as you can.**\n\n**18 held-out questions \u2014 3 per matter.**\
+    \ You answer these blind and submit them\n**once**, with `matter final`, which ends the engagement\
+    \ \u2014 no feedback, no second\nattempt. Their prompts are in `tools/heldout_prompts.json` from the\
+    \ start.\n\nThe two halves come from the same six matters and are graded by the same kind of\ncriteria.\
+    \ So whatever you learn on the visible half \u2014 how specific to be, how to\nenumerate, which documents\
+    \ settle which point \u2014 is exactly what the held-out half\nwill ask of you. **Working the visible\
+    \ questions properly is how you do well on\nthe held-out ones.**\n\n## The `matter` tool\n\n```\n\
+    matter status                    budget left, best score per question\nmatter tasks              \
+    \       the visible questions\nmatter show <task>               one question in full\nmatter submit\
+    \ <task> <file>      grade an answer  (costs 1 of your 90)\nmatter close                     end the\
+    \ visible phase early\nmatter final [answers.json]      submit the held-out answers \u2014 ONCE, terminal\n\
+    ```\n\nThe rubrics live in a separate grading service you cannot read or reach except\nthrough `matter\
+    \ submit`. There is no copy anywhere in this container.\n\nYou have 90 submissions in total across\
+    \ the visible questions.  Reading the documents costs nothing;\nonly `matter submit` spends budget.\n\
+    \n## What to submit\n\nWrite your held-out answers into **`methods/main/answers.json`** as you go\
+    \ \u2014 it\nis a plain file, fill it in question by question rather than leaving it to the\nend.\
+    \ It maps each held-out `task_name` to your answer text:\n\n```json\n{\n  \"w419_oilspill/World419_DM_02\"\
+    : \"Neither Star Tankers ... $56,709,300 ...\",\n  \"w433_seniorliving/World433_JS_08\": \"...\"\n\
+    }\n```\n\nThen run `matter final`. An unanswered question scores zero on every one of its\ncriteria,\
+    \ so answer all 18 even where you are unsure.\n\n## How answers are judged\n\n**A question counts\
+    \ only if you satisfy EVERY one of its criteria.** Getting 9\nof 10 scores the same as getting 0 of\
+    \ 10 \u2014 the criteria are all must-haves. The\n`x/y` score you get back during the visible phase\
+    \ is there so you can tell\nwhether a revision helped; it is not partial credit.\n\nEach question\
+    \ has binary criteria of the form *\"States that &lt;some specific\nfinding&gt;\"*. A criterion is\
+    \ satisfied only if your answer actually asserts that\nfinding. So:\n\n- **State conclusions directly,\
+    \ then support them.** No greeting, no preamble,\n  no \"here is what I found\" \u2014 none of that\
+    \ satisfies any criterion.\n- **Be specific.** Exact figures, statutory subsections, policy names,\
+    \ article\n  numbers, regulation citations. A vague characterisation satisfies nothing; the figure\
+    \ or\n  citation the criterion names does.\n- **Enumerate completely.** Many criteria are one-per-item:\
+    \ every policy that\n  covers a claim, every article that applies, every step of a liability\n  computation.\
+    \ Missing one item costs one criterion. Length is not coverage \u2014 a\n  long answer that names\
+    \ three of seven articles scores three.\n- **Follow each question's own instructions on form and length.**\
+    \ Some want a\n  yes/no per item, some one or two sentences, some several paragraphs. A few ask\n\
+    \  for a memo or a schedule; give its full text as your answer.\n- **Do not hedge.** A criterion asks\
+    \ whether you *stated* something. A conclusion\n  buried in qualifications may not read as stated\
+    \ at all.\n\n## What you have\n\n- `tools/world_corpus/<matter>/` \u2014 that matter's documents as\
+    \ text, plus\n  `_index.json` listing every path. Some entries are marked\n  `\"extractable\": false`\
+    \ (audio, images) \u2014 those have no text and cannot be read.\n- `tools/heldout_prompts.json` \u2014\
+    \ the 18 held-out questions.\n- `methods/main/answers.json` \u2014 where your held-out answers go.\n\
+    - CPU only, Python 3. Do not fetch anything external.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 11700
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/legal_matter_caseload_regulatory/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

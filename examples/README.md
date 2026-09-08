@@ -157,6 +157,7 @@ uv pip install -e ./examples/drug_design/grader[ml]
 | [dna_design](#dna_design) | Design cell-type-specific DNA enhancer sequences (SAGA) | Maximize |
 | [drug_design](#drug_design) | Design novel small-molecule antibiotics (SAGA) | Maximize |
 | [swebench-verified](#swebench-verified) | Optimize a solver program across 500 SWE-bench instances | Maximize |
+| [rsi_exam](#rsi_exam) | 35 separate research tasks, replayed in their original isolated verifiers | Maximize |
 | [terminal-bench](#terminal-bench) | Optimize a solver agent for terminal/shell tasks | Maximize |
 
 ## Details
@@ -294,6 +295,17 @@ Meta-solver optimization: agents improve a `solve.py` that wraps a Terminus2-bas
 - **Setup**: `uv pip install anthropic`; requires Harbor CLI (`uvx harbor`)
 - **Baseline**: Terminus2 agent architecture (tmux-based multi-turn interaction)
 - **Note**: Harbor runs Docker containers, so CORAL must run on the host (no Docker-in-Docker)
+
+### rsi_exam
+
+RSI-Exam's 35 public research tasks, each with its own configuration, seed, and
+verifier under `rsi_exam/`. See [rsi_exam/README.md](rsi_exam/README.md) for Docker
+prerequisites, data preparation, and the distinction from the official protocol.
+
+- **Agents**: 1 by default; stock return ranking uses 2 sandboxed Codex agents
+- **Budget**: 1 real evaluation by default; stock return ranking allows 10
+- **Timeout**: per-task upstream build and verifier budgets, plus orchestration overhead
+- **Session**: local; Docker runs task and verifier containers
 
 ### terminal-bench
 

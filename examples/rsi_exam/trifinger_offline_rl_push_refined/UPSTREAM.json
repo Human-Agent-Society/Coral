@@ -1,0 +1,53 @@
+{
+  "dataset": "RSI-Exam/RSI-Exam",
+  "revision": "66f54935eaa576e27dae446f74c2ce17875c14da",
+  "task": "trifinger_offline_rl_push_refined",
+  "source": "https://huggingface.co/datasets/RSI-Exam/RSI-Exam/tree/66f54935eaa576e27dae446f74c2ce17875c14da/trifinger_offline_rl_push_refined",
+  "sha256": {
+    "environment/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "environment/Dockerfile": "a9a6c8c2a11651c4685e48b4a4951ef9bf49f5d813e5c74323486b4ed63dfa7b",
+    "environment/methods/main/solver.py": "b4105324820760b67115ad6a11b55872bf62873187088dbc56149b894216d108",
+    "environment/prepare_visible.py": "c2d8645974de5b1f9457d9c7fb714f0f9c0fc4cec7d42dcb2590659a58261751",
+    "environment/selfcheck.py": "ab2e14ed6288292d31deda590e7c9ed777d0f67def55b289b7bd238e77443676",
+    "environment/trifinger_score.py": "6552c8bbdd0d47fef350721a65f7bd57dae04b63119d0e845bc8fd4ca66817cf",
+    "instruction.md": "f811433f36fabdcbed96976cbb7699b475d3e3ffb4e8c774adcf22c55204d23b",
+    "task.toml": "058b02fea1c83eecdb3c6f4d45a3c4cca487279c3fdf712dc27b5db747648995",
+    "tests/.dockerignore": "ebc49e1ea461f9f79503fa023c86d6233cd9afdea3c552f40df41372737e9b54",
+    "tests/Dockerfile": "90fc07070ac36cd28730dbd1bb94c7a5c406c45edddc0181c2d565dd3bb584a7",
+    "tests/anchor_checkpoints/README.md": "bc128f0f392b6323f30538b9636f3ba24d9bcf9d30389530f572153d54062e82",
+    "tests/child_solve.py": "d601070df9dab654968e9315766438f9ea02334eba5105f69d28fc17d828e902",
+    "tests/grade.py": "f54d866d688ec43e255b29001b52153e68d0633f131cc4b9abf1b35c4d45b8a9",
+    "tests/heldout_seeds.py": "51fe78e92a5c112e98bd2082cb249851e827647a0295b0817bf4cb49562d3e2b",
+    "tests/replay_score.py": "9bb473ac11e661a34320e3c8ea7d1596ae86c9f180efe247f8d334a5c610f602",
+    "tests/split_check.py": "5afc8f0986902f2b2a4e0e464edd10864972f3a9c93586406b4be28a7fb9a6ed",
+    "tests/test.sh": "24624feca38e644a2824bc8ef7edb87e11e8603f43aafcd0f71a0ea1a4775297",
+    "tests/trifinger_score.py": "a3bf267a8517d79f8d1e62518632c7e929cf63ea38eade4897111717131299ce"
+  },
+  "downloads": [
+    {
+      "path": "tests/anchor_checkpoints/baseline/model.pt",
+      "size": 27,
+      "sha256": "6304baf7d4806e5d86657b18ae7048bff28da9ed810d9c1438312a2eaa26e056"
+    },
+    {
+      "path": "tests/anchor_checkpoints/reference/model.pt",
+      "size": 376957,
+      "sha256": "6219da093333f89a81a7292fd2a41250aacef1afaf2b0c5937dbb0df311b221c"
+    },
+    {
+      "path": "tests/anchor_checkpoints/sota/model.pt",
+      "size": 23192513,
+      "sha256": "c9c0f22379e4f99ffe3b197d23a5c5552bdacff80372af121ea53a455550c17e"
+    },
+    {
+      "path": "tests/anchors.json",
+      "size": 92,
+      "git_blob_sha1": "03afc26c2d64218ebf50e81b398fce63e1f48af3"
+    },
+    {
+      "path": "tests/split_check_results.json",
+      "size": 2130,
+      "git_blob_sha1": "def58c490f58811c4642a4841fc292770a4aa0b7"
+    }
+  ]
+}

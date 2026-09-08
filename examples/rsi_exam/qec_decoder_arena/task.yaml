@@ -1,0 +1,80 @@
+task:
+  name: rsi-exam-qec_decoder_arena
+  description: "Optimize the RSI-Exam task below. The CORAL worktree mirrors /app for submission paths\
+    \ only: edit methods/ (and other declared artifacts). Public support code and Docker build inputs\
+    \ are in harbor/environment/. Read instruction.md for the upstream contract.\n\nStart with `uv run\
+    \ rsi_runtime.py bootstrap` to extract any missing image-generated baseline artifacts. Run visible\
+    \ experiments with `uv run rsi_runtime.py run 'python /app/selfcheck.py'` (or the command in instruction.md).\
+    \ This executes inside the original agent container and copies declared submission artifacts back\
+    \ to the worktree.\n\nUse visible feedback for iteration, then submit the final method with `coral\
+    \ eval -m 'final method'`. The default run stops after one real evaluation. Only declared artifacts\
+    \ cross to the original separate verifier. Changing rsi_runtime.py, harbor/, or local support files\
+    \ does not change the trusted grader. --tune does not run hidden tests.\n\n# Beat MWPM: decode quantum\
+    \ error-correction color codes\n\nYou inherit a plain PyMatching (minimum-weight perfect matching)\
+    \ decoder and a\nlabeled development pack for four superdense **color-code** memory experiments.\n\
+    Your decoder is then re-run by a sealed grader on four HELD-OUT color settings\n(same code family,\
+    \ calibrated to the same anchors) that you never see. MWPM is\nthe field standard for surface codes\
+    \ but is **structurally wrong for color\ncodes**. Each setting is scored on a relative scale whose\
+    \ 1.0 is a reference\nlevel recorded in its `meta.json`; the top of the range is for beating it.\n\
+    You submit a decoder, not answers.\n\n## Hard Constraints\n\n- Edit `/app/methods/main/solver.py`.\
+    \ Expose\n  `decode(setting, dets) -> predictions`, a boolean array of shape\n  `[n_shots, n_observables]`\
+    \ \u2014 per shot, the predicted logical-observable flips.\n- **`stim` + `pymatching` + `numpy` +\
+    \ `scipy` + standard library ONLY.** No\n  other decoding package is installed, and none can be added\
+    \ \u2014 whatever decoder\n  you submit has to be built from these.\n- Predictions are compared bit-for-bit\
+    \ against hidden ground-truth flips: LER =\n  fraction of shots with ANY observable mispredicted.\
+    \ The shape must match the\n  truth exactly or the setting scores 0.\n- Per-setting decode wall-clock\
+    \ budget = `setting[\"meta\"][\"decode_budget_sec\"]`\n  (600 s for d5, 900 s for d7/d9). Over budget\
+    \ = 0 for that setting.\n\n## What You Have\n\n- `/app/methods/main/solver.py`: the inherited weak\
+    \ decoder \u2014 plain PyMatching\n  on the published DEM (force-decomposed hyperedges on color codes).\n\
+    \  **This file is graded** \u2014 improve it in place.\n- `/app/arena_harness.py`: the verifier's\
+    \ exact scoring code (`load_setting`,\n  `ler_of`, `setting_score`, `SCORE_CAP`).\n- `/app/settings_visible/{color_d5,color_d5_Z,color_d7,color_d9}/`:\
+    \ four VISIBLE\n  color-code settings. Each carries `meta.json` (with the calibrated `ler_base`\n\
+    \  / `ler_sota` anchors), `model.dem` and `model.stim` (the published,\n  **deliberately miscalibrated**\
+    \ noise model), `dev.npz` (a LABELED dev pack:\n  `dets` + true `obs`), and `eval.npz` (here `dets`\
+    \ + `obs`, so you can score\n  locally). The sealed graded settings are siblings of these four.\n\
+    - `/app/selfcheck.py`: free local dry-run using the grader's exact scoring.\n\n## What You Submit\n\
+    \nEdit `/app/methods/main/solver.py`, keeping the contract:\n\n```python\ndef decode(setting, dets):\n\
+    \    # setting: dict from arena_harness.load_setting, keys:\n    #   meta       (name, family, style,\
+    \ distance, rounds, n_dev, n_eval,\n    #               decode_budget_sec, n_detectors, n_observables,\
+    \ ...)\n    #   name, dem (published DEM text), model_stim (published circuit text),\n    #   dev_dets\
+    \ [n_dev, n_detectors] bool, dev_obs [n_dev, n_observables] bool,\n    #   eval_dets [n_eval, n_detectors]\
+    \ bool  (eval_obs is withheld when graded)\n    # dets: the syndromes to decode (== setting[\"eval_dets\"\
+    ]).\n    # Return predictions [n_shots, n_observables] bool.\n    ...\n```\n\nIterate against `selfcheck.py`,\
+    \ then leave your best `solver.py` in place.\n\n## How It Is Judged\n\nFor each sealed color-code\
+    \ setting the grader runs your `decode()` in an\nisolated subprocess (never seeing the ground truth),\
+    \ computes\n`ler_agent`, and scores\n\n    score = clip( (ln ler_base - ln ler_agent) / (ln ler_base\
+    \ - ln ler_sota), 0, CAP )\n\nwith LERs floored at `1/(2*shots)`. `ler_base` is plain MWPM on the\
+    \ published\nDEM; `ler_sota` is the reference level recorded with each setting. **metric =\nmean over\
+    \ the four sealed color settings** of that per-setting score. Higher is\nbetter; the inherited baseline\
+    \ sits at 0 and the reference level at 1.0.\nEach per-setting score is capped at 2.5.\n\nTwo facts\
+    \ about the setup, stated without a recommended approach: MWPM is the\ninherited decoder and it is\
+    \ structurally wrong for color codes, and the published\nDEM is deliberately miscalibrated versus\
+    \ the noise the eval shots were drawn from.\nThe labeled dev pack (`dev_dets` / `dev_obs`) is yours\
+    \ to use however you see fit.\nOnly `stim`, `pymatching`, `numpy` and `scipy` are available.\n"
+  tips: Reward is the upstream reward (maximize), including raw GPU speedups. Do not inspect hidden tests.
+    Follow the upstream artifact constraints.
+grader:
+  entrypoint: rsi_exam_grader.grader:Grader
+  setup:
+  - uv pip install -e ./grader
+  private:
+  - rsi_task
+  timeout: 11700
+  direction: maximize
+  args:
+    reward_key: reward
+  parallel:
+    max_workers: 1
+agents:
+  count: 1
+  runtime: claude_code
+  model: sonnet
+  timeout: 43200
+  research: false
+workspace:
+  repo_path: ./examples/rsi_exam/qec_decoder_arena/seed
+  results_dir: ./results
+run:
+  session: local
+  stop:
+    max_real_attempts: 1

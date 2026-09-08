@@ -1,0 +1,22 @@
+[
+  {
+    "path": "environment/data/practice/instances.json",
+    "size": 87628,
+    "git_blob_sha1": "0206be02e6b2ba290c8b46deb1359380c9c56671"
+  },
+  {
+    "path": "environment/data/qualification/records.json",
+    "size": 54331,
+    "git_blob_sha1": "f5ab3fe23f3086495d14969da4f50e72bc47718a"
+  },
+  {
+    "path": "tests/anchors.json",
+    "size": 296,
+    "git_blob_sha1": "b766bd7d59e369380e59b40a60a0b372f55ec8f5"
+  },
+  {
+    "path": "tests/heldout/instances_sealed.json",
+    "size": 62351,
+    "git_blob_sha1": "8806168d30616a147090095c4522768866fb686c"
+  }
+]
