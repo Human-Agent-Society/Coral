@@ -19,7 +19,16 @@ import coral.cli.start as start_mod
 from coral.config import CoralConfig
 
 
-def _drive_cmd_start(monkeypatch, tmp_path, *, session, wrapped_session, in_tmux, in_docker):
+def _drive_cmd_start(
+    monkeypatch,
+    tmp_path,
+    *,
+    session,
+    wrapped_session,
+    in_tmux,
+    in_docker,
+    tmux_session_name=None,
+):
     """Run cmd_start through the real restore path, returning the config the
     manager was constructed with."""
     base = CoralConfig()
@@ -31,6 +40,7 @@ def _drive_cmd_start(monkeypatch, tmp_path, *, session, wrapped_session, in_tmux
     monkeypatch.setattr(start_mod, "in_tmux", lambda: in_tmux)
     monkeypatch.setattr(start_mod, "in_docker", lambda: in_docker)
     monkeypatch.setattr(start_mod, "has_tmux", lambda: True)
+    monkeypatch.setattr(start_mod, "_current_tmux_session_name", lambda: tmux_session_name)
     monkeypatch.setattr("coral.cli.validation.validate_task", lambda task_dir: [])
 
     captured = {}
@@ -40,6 +50,7 @@ def _drive_cmd_start(monkeypatch, tmp_path, *, session, wrapped_session, in_tmux
             captured["config"] = config
             self.specs = []
             self.paths = SimpleNamespace(run_dir=tmp_path, coral_dir=tmp_path / ".coral")
+            (self.paths.coral_dir / "public").mkdir(parents=True, exist_ok=True)
 
         def start_all(self):
             return []
@@ -125,3 +136,39 @@ def test_wrappers_pass_wrapped_session_flag(mode):
         src = inspect.getsource(start_mod._start_in_docker)
     assert "--wrapped-session" in src
     assert f'"{mode}"' in src
+
+
+@pytest.mark.parametrize(
+    ("session_name", "expect_owned"),
+    [("coral-mytask-20260906", True), ("users-own-session", False)],
+)
+def test_start_in_tmux_saves_session_marker(monkeypatch, tmp_path, session_name, expect_owned):
+    """cmd_start inside tmux persists the session marker (and the owned flag
+    exactly when coral created the session) without touching a real tmux."""
+    _drive_cmd_start(
+        monkeypatch,
+        tmp_path,
+        session="local",
+        wrapped_session="tmux",
+        in_tmux=True,
+        in_docker=False,
+        tmux_session_name=session_name,
+    )
+    public = tmp_path / ".coral" / "public"
+    assert (public / ".coral_tmux_session").read_text(encoding="utf-8") == session_name
+    assert (public / ".coral_tmux_owned").exists() is expect_owned
+
+
+def test_start_in_tmux_skips_marker_when_probe_fails(monkeypatch, tmp_path):
+    """A failing tmux probe (no server, tmux missing) must skip the marker,
+    not crash cmd_start."""
+    _drive_cmd_start(
+        monkeypatch,
+        tmp_path,
+        session="local",
+        wrapped_session=None,
+        in_tmux=True,
+        in_docker=False,
+        tmux_session_name=None,
+    )
+    assert not (tmp_path / ".coral" / "public" / ".coral_tmux_session").exists()

@@ -89,6 +89,26 @@ def _enforce_docker_isolation(config: CoralConfig) -> None:
     config.agents.isolate_user = DOCKER_ISOLATION_USER
 
 
+def _current_tmux_session_name() -> str | None:
+    """Name of the tmux session this process is running inside, or None.
+
+    Callers gate on in_tmux() for intent; this probe still returns None when
+    tmux is missing or errors so the marker write is skipped, not crashed.
+    Tests patch this seam instead of depending on a real tmux server.
+    """
+    try:
+        result = subprocess.run(
+            ["tmux", "display-message", "-p", "#S"],
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
 def _build_coral_command(args: argparse.Namespace) -> list[str]:
     """Reconstruct the coral start command with run.session=local added."""
     cmd = [_resolved_python(), "-m", "coral.cli", "start"]
@@ -528,13 +548,8 @@ def cmd_start(args: argparse.Namespace) -> None:
     print(f"Logs:          {manager.paths.coral_dir / 'public' / 'logs'}")
 
     if in_tmux():
-        result = subprocess.run(
-            ["tmux", "display-message", "-p", "#S"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            session_name = result.stdout.strip()
+        session_name = _current_tmux_session_name()
+        if session_name:
             # Mark as owned if coral created this tmux session (via _start_in_tmux)
             coral_owns = session_name.startswith("coral-")
             save_tmux_session_name(
@@ -718,13 +733,8 @@ def cmd_resume(args: argparse.Namespace) -> None:
     print(f"\nRun directory: {paths.run_dir}")
 
     if in_tmux():
-        result = subprocess.run(
-            ["tmux", "display-message", "-p", "#S"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            session_name = result.stdout.strip()
+        session_name = _current_tmux_session_name()
+        if session_name:
             # Mark as owned if coral created this tmux session (via _resume_in_tmux)
             coral_owns = session_name.startswith("coral-")
             save_tmux_session_name(paths.coral_dir / "public", session_name, owned=coral_owns)
