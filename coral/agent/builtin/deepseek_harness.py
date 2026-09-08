@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 import sys
 import threading
@@ -20,6 +21,7 @@ from coral.agent.runtime import (
     write_coral_log_entry,
 )
 from coral.sandbox.protocol import AgentSandboxSpec
+from coral.venv_paths import venv_bin_dir
 from coral.workspace.repo import _clean_env
 
 logger = logging.getLogger(__name__)
@@ -139,7 +141,10 @@ class DeepSeekHarnessRuntime:
         worktree_venv = str(worktree_path / ".venv")
         agent_env["UV_PROJECT_ENVIRONMENT"] = worktree_venv
         agent_env["VIRTUAL_ENV"] = worktree_venv
-        agent_env["PATH"] = str(worktree_path / ".venv" / "bin") + ":" + agent_env.get("PATH", "")
+        # Prepend the venv executable dir (bin or Scripts) to PATH, matching
+        # the platform-aware resolution used by the other builtin runtimes.
+        venv_bin = str(venv_bin_dir(worktree_path / ".venv"))
+        agent_env["PATH"] = venv_bin + os.pathsep + agent_env.get("PATH", "")
         agent_env["DSH_HOME"] = str(dsh_home)
 
         permission_mode = opts.get("permission_mode")
@@ -156,7 +161,7 @@ class DeepSeekHarnessRuntime:
         apply_sandbox_env(agent_env, sandbox)
         user_kwargs = apply_run_as_user(agent_env, run_as_user)
 
-        log_file = open(log_path, "w", buffering=1)
+        log_file = open(log_path, "w", buffering=1, encoding="utf-8", errors="replace")
         err_path: Path | None = None
         err_file: Any = None
         stderr_target: Any = subprocess.STDOUT

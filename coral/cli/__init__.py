@@ -176,8 +176,11 @@ Run 'coral <command> --help' for details on any command."""
         action="store_true",
         help="Output one machine-readable validation result",
     )
-    # Hidden alias: test-eval -> validate
-    sub.add_parser("test-eval", help=argparse.SUPPRESS)
+    # Hidden alias: test-eval -> validate (mirror validate's arguments so the
+    # alias can actually dispatch; cmd_validate reads args.path)
+    p_test_eval = sub.add_parser("test-eval", help=argparse.SUPPRESS)
+    p_test_eval.add_argument("path", help=argparse.SUPPRESS)
+    p_test_eval.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
 
     # --- Running Agents ---
 

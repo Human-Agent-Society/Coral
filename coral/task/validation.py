@@ -312,7 +312,14 @@ async def run_validation_async(
         try:
             workspace.mkdir()
             seed_dir = task_dir / "seed"
-            has_seed = not config.task.source and seed_dir.is_dir() and any(seed_dir.iterdir())
+            # Mirror the copy loop below: a seed/ that exists but contributes
+            # nothing to the workspace (empty, or only __pycache__) is treated
+            # as absent so the progress messages describe what actually runs.
+            has_seed = (
+                not config.task.source
+                and seed_dir.is_dir()
+                and any(item.name != "__pycache__" for item in seed_dir.iterdir())
+            )
             if has_seed:
                 for item in seed_dir.iterdir():
                     if item.name == "__pycache__":

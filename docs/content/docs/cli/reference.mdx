@@ -353,10 +353,12 @@ These commands are primarily used by agents during their eval loop, but can also
 
 ### `coral eval`
 
-Stage all changes, commit, and run the grader.
+Stage all changes, commit, and run the grader. By default this blocks until
+the grader daemon returns a score; use `--no-wait` to return immediately and
+poll later with [`coral wait`](#coral-wait).
 
 ```bash
-coral eval -m <message> [--agent ID] [--workdir DIR]
+coral eval -m <message> [--agent ID] [--workdir DIR] [--no-wait] [--timeout SECONDS] [--tune]
 ```
 
 | Flag | Description |
@@ -364,9 +366,34 @@ coral eval -m <message> [--agent ID] [--workdir DIR]
 | `-m, --message` | Description of changes (required) |
 | `--agent` | Agent ID (default: read from `.coral_agent_id`) |
 | `--workdir` | Working directory (default: cwd) |
+| `--wait / --no-wait` | Wait for the grader to return a score (default: wait). With `--no-wait`, returns immediately with a pending status |
+| `--timeout` | Seconds to wait for the grader (default: derived from `grader.timeout`) |
+| `--tune` | Submit as a tune-mode attempt: scored and recorded normally, but excluded from the agent's plateau / heartbeat budget. Use for hyperparameter sweeps and config exploration that shouldn't trigger pivot prompts |
 
 ```bash
 coral eval -m "Optimized inner loop with vectorization"
+coral eval -m "Try variant A" --no-wait
+coral eval -m "Heavy benchmark" --timeout 1800
+coral eval --tune -m "Sweep lr=1e-3 vs 3e-4"
+```
+
+### `coral wait`
+
+Block until the grader daemon finalizes a previously submitted attempt
+(e.g. one submitted with `coral eval --no-wait`).
+
+```bash
+coral wait <hash> [--workdir DIR] [--timeout SECONDS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--workdir` | Working directory (default: cwd) |
+| `--timeout` | Seconds to wait (default: derived from `grader.timeout`) |
+
+```bash
+coral wait abc123
+coral wait abc123 --timeout 600
 ```
 
 ### `coral diff`

@@ -196,6 +196,51 @@ def test_run_validation_returns_baseline_and_progress_events(tmp_path, monkeypat
     ]
 
 
+@pytest.mark.parametrize(
+    "seed_contents",
+    [
+        pytest.param(None, id="no-seed-dir"),
+        pytest.param([], id="empty-seed-dir"),
+        pytest.param(["__pycache__"], id="pycache-only-seed-dir"),
+    ],
+)
+def test_run_validation_reports_empty_workspace_consistently(tmp_path, monkeypatch, seed_contents):
+    """When nothing lands in the workspace, both the workspace warning and the
+    baseline-target message must say so — previously a seed/ dir that existed
+    but contributed nothing produced the 'No seed/' warning and then claimed
+    to run the grader 'against seed code'."""
+    task_dir = _make_task(tmp_path, '  entrypoint: "p.g:G"')
+    if seed_contents is not None:
+        seed_dir = task_dir / "seed"
+        seed_dir.mkdir()
+        for name in seed_contents:
+            (seed_dir / name).mkdir()
+
+    class FakeGrader:
+        async def grade(self, codebase_path, tasks):
+            assert list(Path(codebase_path).iterdir()) == []
+            return ScoreBundle(
+                scores={"eval": Score(value=0.0, name="eval", explanation="empty")},
+                aggregated=0.0,
+            )
+
+    monkeypatch.setattr(
+        "coral.workspace.grader_env.setup_grader_env",
+        lambda coral_dir, grader_config, config_dir: None,
+    )
+    monkeypatch.setattr(
+        "coral.grader.loader.load_grader",
+        lambda config, coral_dir: FakeGrader(),
+    )
+
+    result = task_validation.run_validation(task_dir)
+
+    assert result.successful
+    events = {(event.stage, event.status): event.message for event in result.events}
+    assert "No seed/ directory" in events[("workspace", "completed")]
+    assert events[("baseline", "started")] == "Running grader against empty workspace..."
+
+
 async def test_run_validation_async_runs_inside_existing_event_loop(tmp_path, monkeypatch):
     task_dir = _make_task(tmp_path, '  entrypoint: "p.g:G"')
 

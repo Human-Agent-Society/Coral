@@ -25,7 +25,8 @@ from coral.harbor_task import (
     inspect_local_harbor_task,
     stage_local_harbor_task,
 )
-from coral.task.validation import validate_task
+from coral.task.validation import run_validation, validate_task
+from coral.types import Score, ScoreBundle, Task
 from coral.workspace.project import create_project
 
 
@@ -295,6 +296,39 @@ def test_validate_rejects_seed_mixed_with_harbor_source(tmp_path: Path) -> None:
 
     assert not report.valid
     assert {diagnostic.code for diagnostic in report.diagnostics} == {"task.harbor.seed_mixed"}
+
+
+def test_run_validation_stages_harbor_privately_and_reports_empty_baseline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_harbor_task(tmp_path)
+    _write_coral_config(tmp_path)
+
+    class FakeGrader:
+        async def grade(self, codebase_path: str, tasks: list[Task]) -> ScoreBundle:
+            workspace = Path(codebase_path)
+            assert list(workspace.iterdir()) == []
+            private_task = workspace.parent / ".coral" / "private" / "harbor_task"
+            assert (private_task / "tests" / "test.sh").is_file()
+            assert (private_task / "solution" / "answer.txt").read_text() == "secret\n"
+            assert tasks[0].name == "example/hello"
+            return ScoreBundle(scores={"reward": Score(value=0.0, name="reward")}, aggregated=0.0)
+
+    monkeypatch.setattr(
+        "coral.workspace.grader_env.setup_grader_env",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr("coral.grader.loader.load_grader", lambda *args: FakeGrader())
+
+    result = run_validation(tmp_path)
+
+    assert result.successful
+    assert result.baseline is not None
+    assert result.baseline.aggregated == 0.0
+    events = {(event.stage, event.status): event.message for event in result.events}
+    assert "Harbor source staged privately" in events[("workspace", "completed")]
+    assert events[("baseline", "started")] == "Running grader against empty workspace..."
 
 
 def test_create_project_stages_harbor_task_without_exposing_it_to_agents(
