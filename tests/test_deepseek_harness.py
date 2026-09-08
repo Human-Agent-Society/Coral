@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -151,3 +153,52 @@ def test_restart_does_not_invent_unsupported_resume_flag(
     assert cmd[:3] == ["dsh", "--profile", "headless"]
     assert cmd[-1] == "continue"
     assert "--resume" not in cmd
+
+
+def test_start_prepends_platform_aware_venv_bin_to_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """PATH must use the platform's venv executable dir (bin/ vs Scripts/).
+
+    Guards the cross-platform venv path contract (#231): a hardcoded
+    ``.venv/bin`` would point at a nonexistent directory on Windows.
+    """
+    monkeypatch.setattr(subprocess, "Popen", _FakePopen)
+    worktree = _make_worktree(tmp_path)
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    DeepSeekHarnessRuntime().start(
+        worktree_path=worktree,
+        coral_md_path=worktree / "AGENTS.md",
+        log_dir=tmp_path / "logs",
+        prompt="task",
+    )
+
+    path_value = _FakePopen.captured[0]["kwargs"]["env"]["PATH"]
+    first_entry = path_value.split(os.pathsep)[0]
+    assert first_entry == str(worktree / ".venv" / "Scripts")
+
+
+def test_start_opens_log_file_utf8_with_replacement(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The agent log must be UTF-8 with errors='replace' like all runtimes.
+
+    Without an explicit encoding, the log file inherits the locale encoding,
+    and the verbose tee (which writes UTF-8-decoded agent output through this
+    handle) raises UnicodeEncodeError under a non-UTF-8 locale.
+    """
+    monkeypatch.setattr(subprocess, "Popen", _FakePopen)
+    worktree = _make_worktree(tmp_path)
+
+    handle = DeepSeekHarnessRuntime().start(
+        worktree_path=worktree,
+        coral_md_path=worktree / "AGENTS.md",
+        log_dir=tmp_path / "logs",
+        prompt="task",
+    )
+
+    log_file = handle._log_file
+    assert log_file is not None
+    assert log_file.encoding.lower().replace("-", "") == "utf8"
+    assert log_file.errors == "replace"

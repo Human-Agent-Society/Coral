@@ -16,7 +16,7 @@ import uvicorn
 from litellm.proxy.proxy_server import app as litellm_app
 from litellm.proxy.proxy_server import initialize
 
-from coral.gateway.middleware import CoralGatewayMiddleware
+from coral.gateway.middleware import CoralGatewayMiddleware, HeaderProvider
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,13 @@ class GatewayManager:
         config_path: str,
         api_key: str = "",
         log_dir: Path | None = None,
+        header_provider: HeaderProvider | None = None,
     ) -> None:
         self.port = port
         self.config_path = config_path
         self.api_key = api_key or f"sk-coral-{secrets.token_hex(8)}"
         self.log_dir = log_dir or Path(".coral/gateway")
+        self.header_provider = header_provider
         self._server_thread: threading.Thread | None = None
         self._server: object | None = None  # uvicorn.Server
         self._middleware: object | None = None  # CoralGatewayMiddleware
@@ -88,6 +90,7 @@ class GatewayManager:
             app=litellm_app,
             log_dir=self.log_dir,
             master_key=self.api_key,
+            header_provider=self.header_provider,
         )
         self._middleware = middleware
 

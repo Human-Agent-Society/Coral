@@ -1,0 +1,47 @@
+task:
+  name: "Frontier-SWE · Git to Zig"
+  description: |
+    Improve `candidate.bundle`, a cumulative multi-file Zig implementation of
+    Git v2.47.0. Harbor materializes the bundle over `/app/zig-port` in the
+    pinned official Frontier-SWE task image. `zig build` must produce
+    `zig-out/bin/git` with compatible commands, output, and exit codes.
+
+    Do not compile or link the C Git source, delegate to the installed `git`,
+    use libgit2, access verifier files, or change the task contract. The
+    official verifier runs the Git test suites and scores the fraction of the
+    pinned oracle's attempted tests that pass.
+  tips: |
+    Bundle sections use `=== FILE: relative/path ===` and `=== END FILE ===`.
+    Include complete file contents, without Markdown fences or prose. Paths are
+    relative to `/app/zig-port`. The seed's validated official score is 0.197833.
+    The full verifier typically takes about 13 minutes after image setup.
+
+grader:
+  entrypoint: "frontier_swe_grader.grader:Grader"
+  setup:
+    - "uv pip install -e ./grader"
+  timeout: 90000
+  direction: maximize
+  args:
+    task_id: "git-to-zig"
+    program_file: "candidate.bundle"
+  parallel:
+    max_workers: 1
+  max_pending_per_agent: 1
+
+agents:
+  count: 1
+  runtime: codex
+  model: gpt-5.5
+  research: false
+  runtime_options:
+    model_reasoning_effort: high
+
+workspace:
+  results_dir: "./results"
+  repo_path: "./examples/frontier_swe/git-to-zig/seed"
+
+run:
+  verbose: false
+  ui: false
+  session: local

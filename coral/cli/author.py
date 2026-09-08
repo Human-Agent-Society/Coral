@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -188,7 +189,15 @@ def cmd_validate(args: argparse.Namespace) -> None:
     from coral.task.validation import run_validation
 
     task_dir = Path(args.path).resolve()
-    result = run_validation(task_dir, on_event=_render_validation_progress)
+    json_output = getattr(args, "json", False)
+    on_event = None if json_output else _render_validation_progress
+    result = run_validation(task_dir, on_event=on_event)
+
+    if json_output:
+        print(json.dumps(result.to_dict()))
+        if not result.successful:
+            sys.exit(1)
+        return
 
     if result.failure is not None:
         if result.failure.stage == "structure" and result.report.error_messages:

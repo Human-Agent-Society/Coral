@@ -7,6 +7,7 @@ import logging
 import subprocess
 import time
 import uuid
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Cache commit hashes briefly to avoid hammering git on every request
 _HASH_CACHE_TTL = 2.0  # seconds
+
+# Optional callback stamping extra request headers: receives the identified
+# agent (or None) and the ASGI scope, returns header name/value byte pairs.
+HeaderProvider = Callable[["AgentInfo | None", dict[str, Any]], Iterable[tuple[bytes, bytes]]]
 
 
 class CoralGatewayMiddleware:
@@ -25,14 +30,28 @@ class CoralGatewayMiddleware:
     2. Reads the agent's current git commit hash (cached briefly)
     3. Adds X-Coral-Agent-Id and X-Coral-Session-Id headers
     4. Logs request and assembled response as linked JSONL entries
+
+    An optional ``header_provider`` callback can stamp additional request
+    headers (e.g. experiment or trace metadata) without forking the
+    middleware. It is called with the identified agent (or ``None``) and the
+    ASGI scope, and must return an iterable of ``(name, value)`` byte pairs.
+    A failing provider is logged and skipped; it never breaks the request.
     """
 
-    def __init__(self, app: Any, log_dir: Path, master_key: str) -> None:
+    def __init__(
+        self,
+        app: Any,
+        log_dir: Path,
+        master_key: str,
+        header_provider: HeaderProvider | None = None,
+    ) -> None:
         self.app = app
         self.log_dir = log_dir
         self.master_key = master_key
+        self.header_provider = header_provider
         self._agent_map: dict[str, AgentInfo] = {}  # proxy_key -> agent info
         self._hash_cache: dict[str, tuple[str, float]] = {}  # worktree -> (hash, timestamp)
+        self._warned_unknown_keys: set[str] = set()  # keys already warned about
 
         # Ensure log directory exists
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -65,9 +84,21 @@ class CoralGatewayMiddleware:
         info = self._agent_map.get(token)
         if info:
             return info
-        # Key not recognized — fall back to sole agent if only one registered
+        # Key present but not recognized — fall back to sole agent if only one
+        # is registered, but warn: unlike a missing key, a mismatched key
+        # usually means a stale or misconfigured proxy key, and silently
+        # attributing the traffic would mask that.
         if len(self._agent_map) == 1:
-            return next(iter(self._agent_map.values()))
+            fallback = next(iter(self._agent_map.values()))
+            if token not in self._warned_unknown_keys:
+                self._warned_unknown_keys.add(token)
+                logger.warning(
+                    "Gateway received a bearer key that does not match any "
+                    f"registered proxy key; attributing traffic to the sole "
+                    f"registered agent '{fallback.agent_id}'. This may "
+                    "indicate a stale or misconfigured key."
+                )
+            return fallback
         return None
 
     def _get_commit_hash(self, worktree_path: Path) -> str:
@@ -174,6 +205,24 @@ class CoralGatewayMiddleware:
         # Add CORAL-specific headers
         new_headers.append((b"x-coral-agent-id", agent_id.encode("latin-1")))
         new_headers.append((b"x-coral-session-id", session_id.encode("latin-1")))
+
+        # Let integrations stamp extra metadata headers. Validate the pairs
+        # before extending so a misbehaving provider can't half-apply or
+        # break the request.
+        if self.header_provider is not None:
+            try:
+                extra_headers = [
+                    (bytes(name), bytes(value))
+                    for name, value in self.header_provider(agent_info, scope)
+                ]
+            except Exception:
+                logger.warning(
+                    "Gateway header_provider raised; skipping extra headers",
+                    exc_info=True,
+                )
+            else:
+                new_headers.extend(extra_headers)
+
         scope["headers"] = new_headers
 
         # Track response
@@ -257,8 +306,11 @@ def _assemble_response(data: bytes) -> Any:
 
     raw = data.decode("utf-8", errors="replace")
 
-    # Check if this is an SSE stream (starts with "data: ")
-    if not raw.lstrip().startswith("data:"):
+    # Check if this is an SSE stream. OpenAI-style streams start with a
+    # "data:" field; Anthropic Messages streams start with an "event:" field
+    # (e.g. "event: message_start").
+    stripped = raw.lstrip()
+    if not (stripped.startswith("data:") or stripped.startswith("event:")):
         return _safe_parse_json(data)
 
     # Parse SSE chunks and assemble content
@@ -302,6 +354,29 @@ def _assemble_response(data: bytes) -> Any:
             status = response_obj.get("status")
             if response_obj.get("usage"):
                 usage = response_obj["usage"]
+        # Anthropic Messages API streaming format
+        elif chunk_type == "message_start":
+            message = chunk.get("message", {})
+            if not response_id and message.get("id"):
+                response_id = message["id"]
+            if not model and message.get("model"):
+                model = message["model"]
+            if isinstance(message.get("usage"), dict):
+                usage = {**(usage or {}), **message["usage"]}
+        elif chunk_type == "content_block_delta":
+            delta = chunk.get("delta", {})
+            if delta.get("type") == "text_delta":
+                text = delta.get("text", "")
+                if text:
+                    content_parts.append(text)
+        elif chunk_type == "message_delta":
+            delta = chunk.get("delta", {})
+            if delta.get("stop_reason"):
+                finish_reason = delta["stop_reason"]
+            # message_delta carries cumulative output token usage at the top
+            # level; merge it so input_tokens from message_start is kept.
+            if isinstance(chunk.get("usage"), dict):
+                usage = {**(usage or {}), **chunk["usage"]}
         # Chat Completions streaming format
         else:
             for choice in chunk.get("choices", []):
@@ -312,8 +387,8 @@ def _assemble_response(data: bytes) -> Any:
                 if choice.get("finish_reason"):
                     finish_reason = choice["finish_reason"]
 
-        if chunk.get("usage"):
-            usage = chunk["usage"]
+            if chunk.get("usage"):
+                usage = chunk["usage"]
 
     assembled: dict[str, Any] = {}
     if response_id:

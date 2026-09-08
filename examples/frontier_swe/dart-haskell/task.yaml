@@ -1,0 +1,47 @@
+task:
+  name: "Frontier-SWE · dart_style to Haskell"
+  description: |
+    Improve `candidate.bundle`, a Haskell reimplementation of dart_style 3.1.4
+    materialized at `/app/dart-style` in the pinned official Frontier-SWE task
+    image. `cabal build all` must produce a `dart-style` executable compatible
+    with the documented CLI, including page width, indentation, language
+    version, statement, compilation-unit, trailing-comma, and experiment flags.
+
+    Support both short style (Dart language <=3.6) and tall style (>3.6). The
+    official score is the byte-for-byte golden-test pass rate after build and
+    anti-cheat gates. Do not delegate to Dart or another external formatter.
+  tips: |
+    Bundle sections use `=== FILE: relative/path ===` and `=== END FILE ===`.
+    Include complete file contents, without Markdown fences or prose. Paths are
+    relative to `/app/dart-style`. The seed's validated official score is 0.0546
+    (285/5224 tests).
+
+grader:
+  entrypoint: "frontier_swe_grader.grader:Grader"
+  setup:
+    - "uv pip install -e ./grader"
+  timeout: 90000
+  direction: maximize
+  args:
+    task_id: "dart-style-haskell"
+    program_file: "candidate.bundle"
+  parallel:
+    max_workers: 1
+  max_pending_per_agent: 1
+
+agents:
+  count: 1
+  runtime: codex
+  model: gpt-5.5
+  research: false
+  runtime_options:
+    model_reasoning_effort: high
+
+workspace:
+  results_dir: "./results"
+  repo_path: "./examples/frontier_swe/dart-haskell/seed"
+
+run:
+  verbose: false
+  ui: false
+  session: local

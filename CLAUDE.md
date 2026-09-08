@@ -98,6 +98,7 @@ uv sync --all-extras       # Everything
 # Authoring
 coral init my-task                                # Scaffold task.yaml + grader/ package + seed/
 coral validate my-task                            # Type-check task structure and dry-run grader against seed/
+coral validate my-task --json                     # Emit one structured validation result for tools/frontends
 
 # User-level agent bindings (~/.config/coral/agents.yaml)
 coral setup                                       # Scan PATH + numbered wizard (one runtime can yield N bindings)

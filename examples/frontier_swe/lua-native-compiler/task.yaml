@@ -1,0 +1,49 @@
+task:
+  name: "Frontier-SWE · Lua Native Compiler"
+  description: |
+    Improve `candidate.bundle`, a compiler project materialized at
+    `/app/lua-native-compiler` in the pinned official Frontier-SWE task image.
+    It must accept `luanatc input.lua -o output` and produce standalone x86-64
+    ELF executables for Lua 5.4 programs.
+
+    The compiled program must contain program-specific native code. It may use
+    the supplied internal Lua runtime helpers, but it must not implement a
+    bytecode dispatch interpreter, wrap the Lua C embedding API for compiled
+    operations, delegate to the reference interpreter, or invoke a C compiler
+    for generated code. The official score is the test-program pass rate after
+    build and anti-cheat gates.
+  tips: |
+    Bundle sections use `=== FILE: relative/path ===` and `=== END FILE ===`.
+    Include complete file contents, without Markdown fences or prose. Paths are
+    relative to `/app/lua-native-compiler`. The seed's validated official score
+    is 0.406593 (74/182 tests).
+
+grader:
+  entrypoint: "frontier_swe_grader.grader:Grader"
+  setup:
+    - "uv pip install -e ./grader"
+  timeout: 90000
+  direction: maximize
+  args:
+    task_id: "lua-native-compiler"
+    program_file: "candidate.bundle"
+  parallel:
+    max_workers: 1
+  max_pending_per_agent: 1
+
+agents:
+  count: 1
+  runtime: codex
+  model: gpt-5.5
+  research: false
+  runtime_options:
+    model_reasoning_effort: high
+
+workspace:
+  results_dir: "./results"
+  repo_path: "./examples/frontier_swe/lua-native-compiler/seed"
+
+run:
+  verbose: false
+  ui: false
+  session: local

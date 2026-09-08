@@ -31,15 +31,17 @@ Produces a self-contained layout: `task.yaml` wired to a packaged grader (`grade
 Validate task structure and dry-run the grader against seed code.
 
 ```bash
-coral validate <path>
+coral validate <path> [--json]
 ```
 
 | Flag | Description |
 |------|-------------|
 | `path` | Path to the task directory |
+| `--json` | Emit one JSON result containing diagnostics, progress events, the baseline score, and any failure; exits with status 1 when validation fails |
 
 ```bash
 coral validate my-task
+coral validate my-task --json
 ```
 
 ---
@@ -351,7 +353,9 @@ These commands are primarily used by agents during their eval loop, but can also
 
 ### `coral eval`
 
-Stage all changes, commit, and run the grader.
+Stage all changes, commit, and run the grader. By default this blocks until
+the grader daemon returns a score; use `--no-wait` to return immediately and
+poll later with [`coral wait`](#coral-wait).
 
 ```bash
 coral eval -m <message> [--agent ID] [--workdir DIR] [--no-wait]
@@ -364,14 +368,17 @@ coral eval -m <message> [--agent ID] [--workdir DIR] [--no-wait]
 | `-m, --message` | Description of changes (required) |
 | `--agent` | Agent ID (default: read from `.coral_agent_id`) |
 | `--workdir` | Working directory (default: cwd) |
-| `--no-wait` | Submit the attempt without waiting for its score |
-| `--timeout` | Maximum seconds to wait for grading; does not change grader execution timeout |
-| `--tune` | Classify the attempt as tune-mode; it does not affect plateau or meta-evolve lift |
+| `--wait / --no-wait` | Wait for the grader to return a score (default: wait). With `--no-wait`, returns immediately with a pending status |
+| `--timeout` | Seconds to wait for the grader (default: derived from `grader.timeout`); does not change grader execution timeout |
+| `--tune` | Submit as a tune-mode attempt: scored and recorded normally, but excluded from the agent's plateau / heartbeat budget and meta-evolve lift. Use for hyperparameter sweeps and config exploration that shouldn't trigger pivot prompts |
 | `--operator` | Meta-evolve operator label; requires `--mutation` |
 | `--mutation` | Meta-evolve mutation label; requires `--operator` |
 
 ```bash
 coral eval -m "Optimized inner loop with vectorization"
+coral eval -m "Try variant A" --no-wait
+coral eval -m "Heavy benchmark" --timeout 1800
+coral eval --tune -m "Sweep lr=1e-3 vs 3e-4"
 coral eval -m "Rewrite task instructions" --operator prompt --mutation rewrite
 ```
 
@@ -381,6 +388,25 @@ pair. CORAL validates the pair before staging or committing files, stores it in
 the Attempt metadata, and prints it as `Meta: operator / mutation` in eval and
 `coral show` output. Tune attempts may carry a pair for audit continuity, but
 they never contribute lift observations.
+
+### `coral wait`
+
+Block until the grader daemon finalizes a previously submitted attempt
+(e.g. one submitted with `coral eval --no-wait`).
+
+```bash
+coral wait <hash> [--workdir DIR] [--timeout SECONDS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--workdir` | Working directory (default: cwd) |
+| `--timeout` | Seconds to wait (default: derived from `grader.timeout`) |
+
+```bash
+coral wait abc123
+coral wait abc123 --timeout 600
+```
 
 ### `coral diff`
 

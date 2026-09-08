@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -191,6 +194,51 @@ def test_run_validation_returns_baseline_and_progress_events(tmp_path, monkeypat
         ("baseline", "started"),
         ("baseline", "completed"),
     ]
+
+
+@pytest.mark.parametrize(
+    "seed_contents",
+    [
+        pytest.param(None, id="no-seed-dir"),
+        pytest.param([], id="empty-seed-dir"),
+        pytest.param(["__pycache__"], id="pycache-only-seed-dir"),
+    ],
+)
+def test_run_validation_reports_empty_workspace_consistently(tmp_path, monkeypatch, seed_contents):
+    """When nothing lands in the workspace, both the workspace warning and the
+    baseline-target message must say so — previously a seed/ dir that existed
+    but contributed nothing produced the 'No seed/' warning and then claimed
+    to run the grader 'against seed code'."""
+    task_dir = _make_task(tmp_path, '  entrypoint: "p.g:G"')
+    if seed_contents is not None:
+        seed_dir = task_dir / "seed"
+        seed_dir.mkdir()
+        for name in seed_contents:
+            (seed_dir / name).mkdir()
+
+    class FakeGrader:
+        async def grade(self, codebase_path, tasks):
+            assert list(Path(codebase_path).iterdir()) == []
+            return ScoreBundle(
+                scores={"eval": Score(value=0.0, name="eval", explanation="empty")},
+                aggregated=0.0,
+            )
+
+    monkeypatch.setattr(
+        "coral.workspace.grader_env.setup_grader_env",
+        lambda coral_dir, grader_config, config_dir: None,
+    )
+    monkeypatch.setattr(
+        "coral.grader.loader.load_grader",
+        lambda config, coral_dir: FakeGrader(),
+    )
+
+    result = task_validation.run_validation(task_dir)
+
+    assert result.successful
+    events = {(event.stage, event.status): event.message for event in result.events}
+    assert "No seed/ directory" in events[("workspace", "completed")]
+    assert events[("baseline", "started")] == "Running grader against empty workspace..."
 
 
 async def test_run_validation_async_runs_inside_existing_event_loop(tmp_path, monkeypatch):
@@ -525,6 +573,88 @@ def test_cmd_validate_renders_shared_runner_result(tmp_path, monkeypatch, capsys
         "  eval: baseline ok",
         "==================================================",
     ]
+
+
+def test_validate_help_documents_json_output() -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "coral.cli", "validate", "--help"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "--json" in result.stdout
+
+
+def test_cmd_validate_json_outputs_one_machine_readable_document(tmp_path, monkeypatch, capsys):
+    task_dir = tmp_path / "task"
+    result = task_validation.ValidationRunResult(
+        report=ValidationReport(task_dir=task_dir.resolve(), diagnostics=()),
+        events=(),
+        baseline=ScoreBundle(
+            scores={"eval": Score(value=1.25, name="eval", explanation="baseline ok")},
+            aggregated=1.25,
+        ),
+    )
+
+    def fake_run_validation(path, *, on_event=None):
+        assert path == task_dir.resolve()
+        assert on_event is None
+        return result
+
+    monkeypatch.setattr(task_validation, "run_validation", fake_run_validation)
+
+    cmd_validate(argparse.Namespace(path=str(task_dir), json=True))
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    payload = json.loads(captured.out)
+    assert payload["successful"] is True
+    assert payload["report"] == {
+        "task_dir": str(task_dir.resolve()),
+        "valid": True,
+        "diagnostics": [],
+    }
+    assert payload["events"] == []
+    assert payload["baseline"]["aggregated"] == 1.25
+    assert payload["failure"] is None
+
+
+def test_cmd_validate_json_failure_is_structured_and_exits_nonzero(tmp_path, monkeypatch, capsys):
+    task_dir = tmp_path / "task"
+    failure = task_validation.ValidationFailure(
+        stage="baseline",
+        code="grader.baseline.failed",
+        message="Grader crashed: boom",
+    )
+    result = task_validation.ValidationRunResult(
+        report=ValidationReport(task_dir=task_dir.resolve(), diagnostics=()),
+        events=(),
+        failure=failure,
+    )
+
+    def fake_run_validation(path, *, on_event=None):
+        assert path == task_dir.resolve()
+        assert on_event is None
+        return result
+
+    monkeypatch.setattr(task_validation, "run_validation", fake_run_validation)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cmd_validate(argparse.Namespace(path=str(task_dir), json=True))
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    payload = json.loads(captured.out)
+    assert payload["successful"] is False
+    assert payload["baseline"] is None
+    assert payload["failure"] == {
+        "stage": "baseline",
+        "code": "grader.baseline.failed",
+        "message": "Grader crashed: boom",
+    }
 
 
 def test_cmd_validate_prints_structure_failure_without_diagnostics(tmp_path, monkeypatch, capsys):

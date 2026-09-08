@@ -1,0 +1,47 @@
+task:
+  name: "Frontier-SWE · libexpat to x86-64 assembly"
+  description: |
+    Improve `candidate.bundle`, an x86-64 assembly implementation of libexpat
+    2.6.4 materialized at `/app/asm-port` in the pinned official Frontier-SWE
+    task image. The build must produce an ABI-compatible `libexpat.so` that
+    exports the public Expat API and follows the System V AMD64 ABI.
+
+    Do not compile or link the C Expat source and do not load, wrap, or delegate
+    to an existing libexpat shared library. The official reward combines
+    weighted API correctness with benchmark performance, subject to build,
+    linking, and anti-cheat gates.
+  tips: |
+    Bundle sections use `=== FILE: relative/path ===` and `=== END FILE ===`.
+    Include complete file contents, without Markdown fences or prose. Paths are
+    relative to `/app/asm-port`. One pinned-image validation scored the seed at
+    1397.818394; the performance component makes this reward machine-dependent.
+
+grader:
+  entrypoint: "frontier_swe_grader.grader:Grader"
+  setup:
+    - "uv pip install -e ./grader"
+  timeout: 90000
+  direction: maximize
+  args:
+    task_id: "libexpat-to-x86asm"
+    program_file: "candidate.bundle"
+  parallel:
+    max_workers: 1
+  max_pending_per_agent: 1
+
+agents:
+  count: 1
+  runtime: codex
+  model: gpt-5.5
+  research: false
+  runtime_options:
+    model_reasoning_effort: high
+
+workspace:
+  results_dir: "./results"
+  repo_path: "./examples/frontier_swe/libexpat-to-x86asm/seed"
+
+run:
+  verbose: false
+  ui: false
+  session: local

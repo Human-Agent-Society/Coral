@@ -153,6 +153,7 @@ uv pip install -e ./examples/drug_design/grader[ml]
 | [frontier_cs_algo](#frontier_cs_algo) | 172 algorithmic competition problems (C++) | Maximize |
 | [frontier_cs_research](#frontier_cs_research) | 127 research-level CS problems (Python) | Maximize |
 | [frontier_eng](frontier_eng/README.md) | 74 generative-optimization benchmarks ported from EinsiaLab/Frontier-Engineering (KernelEngineering, JobShop, Optics, Cryptographic, ...) | Maximize |
+| [frontier_swe](frontier_swe/README.md) | 4 long-horizon systems ports evaluated by pinned official Frontier-SWE tasks through Harbor | Maximize |
 | [dna_design](#dna_design) | Design cell-type-specific DNA enhancer sequences (SAGA) | Maximize |
 | [drug_design](#drug_design) | Design novel small-molecule antibiotics (SAGA) | Maximize |
 | [swebench-verified](#swebench-verified) | Optimize a solver program across 500 SWE-bench instances | Maximize |
@@ -250,6 +251,22 @@ Predict mRNA degradation rates at each base position. Scored by Mean Columnwise 
 - **Direction**: Maximize (combined_score per upstream contract)
 - **Grader**: `frontier_eng_grader.grader:Grader`
 - **Generator**: `examples/frontier_eng/_scripts/generate_tasks.py` (re-runnable from a fresh upstream checkout)
+
+### frontier_swe
+
+Four long-horizon systems candidates adapted from Frontier-SWE: Git v2.47.0
+in Zig, a Lua 5.4 native compiler, libexpat 2.6.4 in x86-64 assembly, and
+dart_style 3.1.4 in Haskell. Each seed is a non-zero cumulative source bundle.
+The packaged grader fetches a pinned upstream task into `.coral/private/` and
+uses Harbor to materialize the bundle in a digest-pinned official image and
+run its verifier; no upstream tests or task images are vendored in CORAL. See
+[examples/frontier_swe/README.md](frontier_swe/README.md) for prerequisites,
+seed scores, and validation commands.
+
+- **Tasks**: 4
+- **Direction**: Maximize (official Frontier-SWE reward)
+- **Grader**: `frontier_swe_grader.grader:Grader`
+- **Runtime**: Harbor with Docker (default) or Modal
 
 ### dna_design
 

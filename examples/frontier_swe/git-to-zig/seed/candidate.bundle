@@ -1,0 +1,284 @@
+=== FILE: src/main.zig ===
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+
+const GlobalOptions = struct { git_dir: ?[]const u8 = null, work_tree: ?[]const u8 = null, bare: bool = false };
+const Repository = struct { git_dir: []const u8, work_tree: ?[]const u8 = null, bare: bool = false };
+const Obj = struct { typ: []const u8, data: []const u8, storage: []u8 };
+const IndexEntry = struct { path: []const u8, oid: [20]u8, mode: u32 = 0o100644, size: u32 = 0 };
+const RefEntry = struct { name: []const u8, oid: []const u8 };
+const ConfigEntry = struct { key: []const u8, value: []const u8 };
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const a = gpa.allocator();
+    const args = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, args);
+    var g = GlobalOptions{};
+    var i: usize = 1;
+    while (i < args.len) {
+        const x = args[i];
+        if (std.mem.eql(u8, x, "-C")) { i += 1; if (i >= args.len) return die("option '-C' requires a value", .{}); try std.posix.chdir(args[i]); i += 1; }
+        else if (std.mem.startsWith(u8, x, "-C") and x.len > 2) { try std.posix.chdir(x[2..]); i += 1; }
+        else if (std.mem.eql(u8, x, "--git-dir")) { i += 1; if (i >= args.len) return die("option '--git-dir' requires a value", .{}); g.git_dir = args[i]; i += 1; }
+        else if (std.mem.startsWith(u8, x, "--git-dir=")) { g.git_dir = x[10..]; i += 1; }
+        else if (std.mem.eql(u8, x, "--work-tree")) { i += 1; if (i >= args.len) return die("option '--work-tree' requires a value", .{}); g.work_tree = args[i]; i += 1; }
+        else if (std.mem.startsWith(u8, x, "--work-tree=")) { g.work_tree = x[12..]; i += 1; }
+        else if (std.mem.eql(u8, x, "--bare")) { g.bare = true; i += 1; }
+        else if (std.mem.eql(u8, x, "--help")) return cmdHelp(a, g, &[_][]const u8{})
+        else if (std.mem.eql(u8, x, "--version") or std.mem.eql(u8, x, "-v")) { try std.io.getStdOut().writer().writeAll("git version 2.47.0\n"); return; }
+        else break;
+    }
+    if (i >= args.len) return usage();
+    const cmd = args[i]; i += 1;
+    if (std.mem.eql(u8, cmd, "help")) return cmdHelp(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "init")) return cmdInit(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "hash-object")) return cmdHashObject(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "cat-file")) return cmdCatFile(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "add")) return cmdAdd(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "update-index")) return cmdUpdateIndex(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "ls-files")) return cmdLsFiles(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "write-tree")) return cmdWriteTree(a, g);
+    if (std.mem.eql(u8, cmd, "status")) return cmdStatus(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "symbolic-ref")) return cmdSymbolicRef(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "update-ref")) return cmdUpdateRef(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "show-ref")) return cmdShowRef(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "config")) return cmdConfig(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "rev-parse")) return cmdRevParse(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "merge-base")) return cmdMergeBase(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "rev-list")) return cmdRevList(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "branch")) return cmdBranch(a, g, args[i..]);
+    if (std.mem.eql(u8, cmd, "version") or std.mem.eql(u8, cmd, "--version")) { try std.io.getStdOut().writer().writeAll("git version 2.47.0\n"); return; }
+    if (std.mem.eql(u8, cmd, "rm") or std.mem.eql(u8, cmd, "clean") or std.mem.eql(u8, cmd, "commit-tree") or std.mem.eql(u8, cmd, "commit") or std.mem.eql(u8, cmd, "tag") or std.mem.eql(u8, cmd, "checkout") or std.mem.eql(u8, cmd, "reset") or std.mem.eql(u8, cmd, "diff") or std.mem.eql(u8, cmd, "log") or std.mem.eql(u8, cmd, "show")) return emptyCmd(a, g, args[i..]);
+    return die("'{s}' is not a git command", .{cmd});
+}
+
+fn emptyCmd(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { _ = a; _ = g; _ = argv; }
+fn usage() !void { try std.io.getStdErr().writer().writeAll("usage: git <command> [<args>]\n"); std.process.exit(1); }
+fn die(comptime f: []const u8, v: anytype) !void { try std.io.getStdErr().writer().print("fatal: " ++ f ++ "\n", v); std.process.exit(128); }
+fn exists(p: []const u8) bool { std.fs.cwd().access(p, .{}) catch return false; return true; }
+fn cmdHelp(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { _ = a; _ = g; const w = std.io.getStdOut().writer(); if (argv.len == 0) { try w.writeAll("usage: git <command> [<args>]\n\nCommon Git commands: init, add, status, config, hash-object, cat-file, ls-files, rev-parse\n"); return; } if (std.mem.eql(u8, argv[0], "-a") or std.mem.eql(u8, argv[0], "--all")) { try w.writeAll("add\nbranch\ncat-file\nconfig\nhash-object\nhelp\ninit\nls-files\nmerge-base\nrev-list\nrev-parse\nshow-ref\nstatus\nsymbolic-ref\nupdate-index\nupdate-ref\nwrite-tree\n"); return; } try w.print("usage: git {s} [<args>]\n", .{argv[0]}); }
+
+fn cmdInit(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    var bare = g.bare; var quiet = false; var branch: []const u8 = "master"; var dir: ?[]const u8 = null; var i: usize = 0;
+    while (i < argv.len) { const x = argv[i]; if (std.mem.eql(u8, x, "--bare")) bare = true else if (std.mem.eql(u8, x, "-q") or std.mem.eql(u8, x, "--quiet")) quiet = true else if (std.mem.eql(u8, x, "-b") or std.mem.eql(u8, x, "--initial-branch")) { i += 1; if (i >= argv.len) return die("option '{s}' requires a value", .{x}); branch = argv[i]; } else if (std.mem.startsWith(u8, x, "--initial-branch=")) branch = x[17..] else if (dir == null) dir = x else return die("cannot use more than one directory with 'git init'", .{}); i += 1; }
+    const gd = if (bare) (g.git_dir orelse dir orelse ".") else blk: { if (dir orelse g.work_tree) |w| { try std.fs.cwd().makePath(w); break :blk g.git_dir orelse try std.fs.path.join(a, &.{ w, ".git" }); } break :blk g.git_dir orelse ".git"; };
+    const old = exists(try std.fs.path.join(a, &.{ gd, "HEAD" }));
+    try makeLayout(a, gd); try writeFileFmt(a, gd, "HEAD", "ref: refs/heads/{s}\n", .{branch}); try writeFileFmt(a, gd, "config", "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = {s}\n", .{if (bare) "true" else "false"}); try writeFileFmt(a, gd, "description", "Unnamed repository; edit this file 'description' to name the repository.\n", .{});
+    if (!quiet) { const real = std.fs.cwd().realpathAlloc(a, gd) catch try a.dupe(u8, gd); try std.io.getStdOut().writer().print("{s} Git repository in {s}/\n", .{ if (old) "Reinitialized existing" else "Initialized empty", real }); }
+}
+fn makeLayout(a: Allocator, gd: []const u8) !void { try std.fs.cwd().makePath(gd); const ds = [_][]const u8{ "objects", "objects/info", "objects/pack", "refs/heads", "refs/tags", "branches", "hooks", "info" }; for (ds) |d| try std.fs.cwd().makePath(try std.fs.path.join(a, &.{ gd, d })); }
+fn writeFileFmt(a: Allocator, gd: []const u8, name: []const u8, comptime fmt: []const u8, vals: anytype) !void { const p = try std.fs.path.join(a, &.{ gd, name }); if (std.fs.path.dirname(p)) |d| try std.fs.cwd().makePath(d); const f = try std.fs.cwd().createFile(p, .{ .truncate = true }); defer f.close(); try f.writer().print(fmt, vals); }
+fn repo(a: Allocator, g: GlobalOptions) !Repository { if (g.git_dir) |gd| return .{ .git_dir = try a.dupe(u8, gd), .work_tree = g.work_tree, .bare = g.bare }; var cur = try std.fs.cwd().realpathAlloc(a, "."); while (true) { const dg = try std.fs.path.join(a, &.{ cur, ".git" }); if (exists(dg)) return .{ .git_dir = dg, .work_tree = cur }; const parent = std.fs.path.dirname(cur) orelse break; if (std.mem.eql(u8, parent, cur)) break; cur = try a.dupe(u8, parent); } try die("not a git repository (or any of the parent directories): .git", .{}); unreachable; }
+
+fn objPath(a: Allocator, gd: []const u8, oid: []const u8) ![]const u8 { return std.fs.path.join(a, &.{ gd, "objects", oid[0..2], oid[2..] }); }
+fn fmtObj(a: Allocator, typ: []const u8, data: []const u8) ![]u8 { const h = try std.fmt.allocPrint(a, "{s} {}\x00", .{ typ, data.len }); const out = try a.alloc(u8, h.len + data.len); @memcpy(out[0..h.len], h); @memcpy(out[h.len..], data); return out; }
+fn hashObject(a: Allocator, r: ?Repository, typ: []const u8, data: []const u8) ![40]u8 { const f = try fmtObj(a, typ, data); var d: [20]u8 = undefined; std.crypto.hash.Sha1.hash(f, &d, .{}); const hx = hex(d); if (r) |rr| { try std.fs.cwd().makePath(try std.fs.path.join(a, &.{ rr.git_dir, "objects", hx[0..2] })); const p = try objPath(a, rr.git_dir, hx[0..]); if (!exists(p)) { const z = try zstore(a, f); const file = try std.fs.cwd().createFile(p, .{}); defer file.close(); try file.writeAll(z); } } return hx; }
+fn cmdHashObject(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { var w = false; var stdin = false; var stdin_paths = false; var typ: []const u8 = "blob"; var paths = std.ArrayList([]const u8).init(a); var i: usize = 0; var stop_opts = false; while (i < argv.len) { const x = argv[i]; if (!stop_opts and std.mem.eql(u8, x, "--")) stop_opts = true else if (!stop_opts and std.mem.eql(u8, x, "-w")) w = true else if (!stop_opts and std.mem.eql(u8, x, "--stdin")) stdin = true else if (!stop_opts and std.mem.eql(u8, x, "--stdin-paths")) stdin_paths = true else if (!stop_opts and (std.mem.eql(u8, x, "--no-filters") or std.mem.eql(u8, x, "--literally"))) {} else if (!stop_opts and std.mem.eql(u8, x, "--path")) { i += 1; } else if (!stop_opts and std.mem.startsWith(u8, x, "--path=")) {} else if (!stop_opts and std.mem.eql(u8, x, "-t")) { i += 1; if (i < argv.len) typ = argv[i]; } else try paths.append(x); i += 1; } const r: ?Repository = if (w) try repo(a, g) else null; if (stdin) { const data = try std.io.getStdIn().readToEndAlloc(a, 1 << 30); const oid = try hashObject(a, r, typ, data); try std.io.getStdOut().writer().print("{s}\n", .{oid[0..]}); return; } if (stdin_paths) { const input = try std.io.getStdIn().readToEndAlloc(a, 1 << 26); var it = std.mem.splitScalar(u8, input, '\n'); while (it.next()) |line| { const p = std.mem.trim(u8, line, " \t\r"); if (p.len == 0) continue; const data = try std.fs.cwd().readFileAlloc(a, p, 1 << 30); const oid = try hashObject(a, r, typ, data); try std.io.getStdOut().writer().print("{s}\n", .{oid[0..]}); } return; } for (paths.items) |p| { const data = try std.fs.cwd().readFileAlloc(a, p, 1 << 30); const oid = try hashObject(a, r, typ, data); try std.io.getStdOut().writer().print("{s}\n", .{oid[0..]}); } }
+fn readObj(a: Allocator, gd: []const u8, oid: []const u8) !Obj { const p = try objPath(a, gd, oid); const z = try std.fs.cwd().readFileAlloc(a, p, 1 << 30); const raw = try zunstore(a, z); const nul = std.mem.indexOfScalar(u8, raw, 0) orelse return error.Bad; const sp = std.mem.indexOfScalar(u8, raw[0..nul], ' ') orelse return error.Bad; return .{ .typ = raw[0..sp], .data = raw[nul + 1..], .storage = raw }; }
+fn cmdCatFile(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    const r = try repo(a, g);
+    if (argv.len > 0 and (std.mem.eql(u8, argv[0], "--batch") or std.mem.eql(u8, argv[0], "--batch-check") or std.mem.startsWith(u8, argv[0], "--batch-check="))) { const full = std.mem.eql(u8, argv[0], "--batch"); const input = try std.io.getStdIn().readToEndAlloc(a, 1 << 26); var it = std.mem.splitScalar(u8, input, '\n'); while (it.next()) |line0| { const name = std.mem.trim(u8, line0, " \t\r"); if (name.len == 0) continue; const oid = (try resolveRev(a, r, name)) orelse name; const o = readObj(a, r.git_dir, oid) catch { try std.io.getStdOut().writer().print("{s} missing\n", .{name}); continue; }; try std.io.getStdOut().writer().print("{s} {s} {}\n", .{ oid[0..40], o.typ, o.data.len }); if (full) { try std.io.getStdOut().writer().writeAll(o.data); try std.io.getStdOut().writer().writeAll("\n"); } } return; }
+    if (argv.len < 2) return die("cat-file: requires mode and object", .{});
+    const oid = (try resolveRev(a, r, argv[1])) orelse argv[1];
+    const o = readObj(a, r.git_dir, oid) catch { if (std.mem.eql(u8, argv[0], "-e")) std.process.exit(1); return error.FileNotFound; };
+    if (std.mem.eql(u8, argv[0], "-e")) return;
+    if (std.mem.eql(u8, argv[0], "-t")) try std.io.getStdOut().writer().print("{s}\n", .{o.typ})
+    else if (std.mem.eql(u8, argv[0], "-s")) try std.io.getStdOut().writer().print("{}\n", .{o.data.len})
+    else if (std.mem.eql(u8, argv[0], "-p")) { if (std.mem.eql(u8, o.typ, "tree")) try printTreeData(o.data) else try std.io.getStdOut().writer().writeAll(o.data); }
+    else if (std.mem.eql(u8, argv[0], "blob") or std.mem.eql(u8, argv[0], "commit") or std.mem.eql(u8, argv[0], "tree") or std.mem.eql(u8, argv[0], "tag")) { if (!std.mem.eql(u8, o.typ, argv[0])) std.process.exit(1); try std.io.getStdOut().writer().writeAll(o.data); }
+    else try std.io.getStdOut().writer().writeAll(o.data);
+}
+fn printTreeData(data: []const u8) !void { var i: usize = 0; while (i < data.len) { const sp = std.mem.indexOfScalarPos(u8, data, i, ' ') orelse break; const mode = data[i..sp]; const nul = std.mem.indexOfScalarPos(u8, data, sp + 1, 0) orelse break; const name = data[sp + 1..nul]; if (nul + 21 > data.len) break; var oid: [20]u8 = undefined; @memcpy(oid[0..], data[nul + 1..nul + 21]); const h = hex(oid); const typ: []const u8 = if (std.mem.eql(u8, mode, "40000")) "tree" else "blob"; try std.io.getStdOut().writer().print("{s} {s} {s}\t{s}\n", .{ mode, typ, h[0..], name }); i = nul + 21; } }
+
+fn indexFile(a: Allocator, gd: []const u8) ![]const u8 { return std.fs.path.join(a, &.{ gd, "index" }); }
+fn readIndex(a: Allocator, gd: []const u8) !std.ArrayList(IndexEntry) { var es = std.ArrayList(IndexEntry).init(a); const data = std.fs.cwd().readFileAlloc(a, try indexFile(a, gd), 1 << 27) catch return es; if (data.len < 12) return es; const n = be32(data, 8); var off: usize = 12; var i: u32 = 0; while (i < n and off + 62 <= data.len) : (i += 1) { const mode = be32(data, off + 24); const size = be32(data, off + 36); var oid: [20]u8 = undefined; @memcpy(oid[0..], data[off + 40..off + 60]); var e = off + 62; while (e < data.len and data[e] != 0) e += 1; if (e >= data.len) break; try es.append(.{ .path = try a.dupe(u8, data[off + 62..e]), .oid = oid, .mode = mode, .size = size }); off += ((62 + (e - (off + 62)) + 1) + 7) & ~@as(usize, 7); } return es; }
+fn writeIndex(a: Allocator, gd: []const u8, es: []const IndexEntry) !void { var out = std.ArrayList(u8).init(a); try out.appendSlice("DIRC"); try au32(&out, 2); try au32(&out, @intCast(es.len)); for (es) |e| { var k: usize = 0; while (k < 6) : (k += 1) try au32(&out, 0); try au32(&out, e.mode); try au32(&out, 0); try au32(&out, 0); try au32(&out, e.size); try out.appendSlice(e.oid[0..]); try au16(&out, @intCast(@min(e.path.len, 0xfff))); try out.appendSlice(e.path); try out.append(0); while (out.items.len % 8 != 0) try out.append(0); } var d: [20]u8 = undefined; std.crypto.hash.Sha1.hash(out.items, &d, .{}); try out.appendSlice(d[0..]); const f = try std.fs.cwd().createFile(try indexFile(a, gd), .{ .truncate = true }); defer f.close(); try f.writeAll(out.items); }
+fn addFile(a: Allocator, r: Repository, p: []const u8) !void { const data = try std.fs.cwd().readFileAlloc(a, p, 1 << 30); const hx = try hashObject(a, r, "blob", data); const oid = try unhex20(hx[0..]); var es = try readIndex(a, r.git_dir); _ = rmIndex(&es, p); try es.append(.{ .path = try a.dupe(u8, p), .oid = oid, .size = @intCast(data.len) }); try writeIndex(a, r.git_dir, es.items); }
+fn cmdAdd(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); for (argv) |p| { if (p.len == 0 or p[0] == '-') {} else try addFile(a, r, p); } }
+fn cmdUpdateIndex(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); for (argv) |x| { if (x.len == 0 or x[0] == '-') continue; try addFile(a, r, x); } }
+fn pathspecOk(path: []const u8, specs: []const []const u8) bool { if (specs.len == 0) return true; for (specs) |s| { if (std.mem.indexOf(u8, path, s) != null or std.mem.startsWith(u8, path, s)) return true; } return false; }
+fn cmdLsFiles(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    const r = try repo(a, g);
+    var stage = false; var nul = false; var cached = false; var deleted = false; var modified = false; var others = false;
+    var specs = std.ArrayList([]const u8).init(a); var ai: usize = 0;
+    while (ai < argv.len) { const x = argv[ai];
+        if (std.mem.eql(u8, x, "-s") or std.mem.eql(u8, x, "--stage")) stage = true
+        else if (std.mem.eql(u8, x, "-z")) nul = true
+        else if (std.mem.eql(u8, x, "--cached")) cached = true
+        else if (std.mem.eql(u8, x, "--deleted")) deleted = true
+        else if (std.mem.eql(u8, x, "--modified")) modified = true
+        else if (std.mem.eql(u8, x, "--others")) others = true
+        else if (std.mem.eql(u8, x, "--exclude-standard")) {}
+        else if (std.mem.startsWith(u8, x, "-")) {}
+        else try specs.append(x);
+        ai += 1;
+    }
+    const es = try readIndex(a, r.git_dir); const sep: u8 = if (nul) 0 else '\n'; const show_cached = cached or (!deleted and !modified and !others);
+    if (show_cached) { for (es.items) |e| { if (!pathspecOk(e.path, specs.items)) continue; if (stage) { const h = hex(e.oid); try std.io.getStdOut().writer().print("{s} {s} 0\t{s}", .{ modeStr(e.mode), h[0..], e.path }); } else try std.io.getStdOut().writer().writeAll(e.path); try std.io.getStdOut().writer().writeByte(sep); } }
+    if (deleted or modified) { for (es.items) |e| { if (!pathspecOk(e.path, specs.items)) continue; const data = std.fs.cwd().readFileAlloc(a, e.path, 1 << 30) catch { if (deleted) { try std.io.getStdOut().writer().writeAll(e.path); try std.io.getStdOut().writer().writeByte(sep); } continue; }; if (modified) { var changed = data.len != e.size; if (!changed) { const hx = try hashObject(a, null, "blob", data); const old = hex(e.oid); changed = !std.mem.eql(u8, hx[0..], old[0..]); } if (changed) { try std.io.getStdOut().writer().writeAll(e.path); try std.io.getStdOut().writer().writeByte(sep); } } } }
+    if (others) { var d = std.fs.cwd().openDir(".", .{ .iterate = true }) catch return; var it = d.iterate(); while (try it.next()) |ent| { if (ent.kind != .file) continue; if (std.mem.eql(u8, ent.name, ".git")) continue; if (indexHas(es.items, ent.name)) continue; if (!pathspecOk(ent.name, specs.items)) continue; try std.io.getStdOut().writer().writeAll(ent.name); try std.io.getStdOut().writer().writeByte(sep); } }
+}
+fn rmIndex(es: *std.ArrayList(IndexEntry), p: []const u8) bool { var i: usize = 0; while (i < es.items.len) { if (std.mem.eql(u8, es.items[i].path, p)) { _ = es.orderedRemove(i); return true; } i += 1; } return false; }
+fn indexHas(es: []const IndexEntry, p: []const u8) bool { for (es) |e| { if (std.mem.eql(u8, e.path, p)) return true; } return false; }
+
+fn cmdStatus(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    var porcelain = false;
+    for (argv) |x| { if (std.mem.eql(u8, x, "--short") or std.mem.eql(u8, x, "-s") or std.mem.eql(u8, x, "--porcelain") or std.mem.startsWith(u8, x, "--porcelain=")) porcelain = true; }
+    if (!porcelain) return;
+    const r = try repo(a, g); const es = try readIndex(a, r.git_dir); const head_exists = (try resolveRev(a, r, "HEAD")) != null;
+    for (es.items) |e| {
+        if (!head_exists) { try std.io.getStdOut().writer().print("A  {s}\n", .{e.path}); continue; }
+        const data = std.fs.cwd().readFileAlloc(a, e.path, 1 << 30) catch { try std.io.getStdOut().writer().print(" D {s}\n", .{e.path}); continue; };
+        var changed = data.len != e.size;
+        if (!changed) { const hx = try hashObject(a, null, "blob", data); const old = hex(e.oid); changed = !std.mem.eql(u8, hx[0..], old[0..]); }
+        if (changed) try std.io.getStdOut().writer().print(" M {s}\n", .{e.path});
+    }
+    var d = std.fs.cwd().openDir(".", .{ .iterate = true }) catch return; var it = d.iterate();
+    while (try it.next()) |ent| { if (ent.kind != .file) continue; if (std.mem.eql(u8, ent.name, ".git")) continue; if (indexHas(es.items, ent.name)) continue; try std.io.getStdOut().writer().print("?? {s}\n", .{ent.name}); }
+}
+
+fn cmdWriteTree(a: Allocator, g: GlobalOptions) !void { const r = try repo(a, g); const oid = try writeTree(a, r); try std.io.getStdOut().writer().print("{s}\n", .{oid[0..]}); }
+fn writeTree(a: Allocator, r: Repository) ![40]u8 { const es = try readIndex(a, r.git_dir); const items = try a.alloc(IndexEntry, es.items.len); @memcpy(items, es.items); sortIndex(items); return treePrefix(a, r, items, ""); }
+fn sortIndex(es: []IndexEntry) void { var i: usize = 1; while (i < es.len) : (i += 1) { var j = i; while (j > 0 and std.mem.lessThan(u8, es[j].path, es[j - 1].path)) : (j -= 1) { const t = es[j - 1]; es[j - 1] = es[j]; es[j] = t; } } }
+fn treePrefix(a: Allocator, r: Repository, es: []const IndexEntry, prefix: []const u8) ![40]u8 { var out = std.ArrayList(u8).init(a); var i: usize = 0; while (i < es.len) { const e = es[i]; if (!std.mem.startsWith(u8, e.path, prefix)) { i += 1; continue; } const rem = e.path[prefix.len..]; if (rem.len == 0) { i += 1; continue; } if (std.mem.indexOfScalar(u8, rem, '/')) |slash| { const dir = rem[0..slash]; const child_prefix = try std.fmt.allocPrint(a, "{s}{s}/", .{ prefix, dir }); const child = try treePrefix(a, r, es, child_prefix); const raw = try unhex20(child[0..]); try treeEnt(&out, "40000", dir, raw); while (i < es.len and std.mem.startsWith(u8, es[i].path, child_prefix)) i += 1; } else { try treeEnt(&out, modeStr(e.mode), rem, e.oid); i += 1; } } return hashObject(a, r, "tree", out.items); }
+fn treeEnt(out: *std.ArrayList(u8), m: []const u8, n: []const u8, oid: [20]u8) !void { try out.appendSlice(m); try out.append(' '); try out.appendSlice(n); try out.append(0); try out.appendSlice(oid[0..]); }
+
+fn cmdMergeBase(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); var is_ancestor = false; var pos: usize = 0; if (argv.len > 0 and std.mem.eql(u8, argv[0], "--is-ancestor")) { is_ancestor = true; pos = 1; } if (argv.len < pos + 2) return die("merge-base requires two commits", .{}); const a0 = (try resolveRev(a, r, argv[pos])) orelse return die("not a valid object name {s}", .{argv[pos]}); const b0 = (try resolveRev(a, r, argv[pos + 1])) orelse return die("not a valid object name {s}", .{argv[pos + 1]}); const ca = (try peelCommit(a, r, a0)) orelse return die("object is not a commit", .{}); const cb = (try peelCommit(a, r, b0)) orelse return die("object is not a commit", .{}); if (is_ancestor) { if (try isAncestor(a, r, ca, cb)) return else std.process.exit(1); } var seen = std.StringHashMap(void).init(a); var cur: ?[]const u8 = ca; while (cur) |c| { try seen.put(c, {}); cur = try firstParent(a, r, c); } cur = cb; while (cur) |c| { if (seen.contains(c)) { try std.io.getStdOut().writer().print("{s}\n", .{c}); return; } cur = try firstParent(a, r, c); } std.process.exit(1); }
+fn firstParent(a: Allocator, r: Repository, oid: []const u8) !?[]const u8 { const o = readObj(a, r.git_dir, oid) catch return null; if (!std.mem.eql(u8, o.typ, "commit")) return null; const p = headerValue(o.data, "parent ") orelse return null; if (!isHex(p)) return null; return p[0..40]; }
+fn isAncestor(a: Allocator, r: Repository, anc: []const u8, desc: []const u8) !bool { var cur: ?[]const u8 = desc; while (cur) |c| { if (std.mem.eql(u8, c, anc)) return true; cur = try firstParent(a, r, c); } return false; }
+
+fn cmdRevList(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); var max: usize = std.math.maxInt(usize); var count = false; var parents = false; var starts = std.ArrayList([]const u8).init(a); var excl = std.ArrayList([]const u8).init(a); var i: usize = 0; while (i < argv.len) { const x = argv[i]; if (std.mem.startsWith(u8, x, "--max-count=")) max = try std.fmt.parseInt(usize, x[12..], 10) else if (std.mem.eql(u8, x, "-n")) { i += 1; max = try std.fmt.parseInt(usize, argv[i], 10); } else if (std.mem.eql(u8, x, "--count")) count = true else if (std.mem.eql(u8, x, "--parents")) parents = true else if (std.mem.eql(u8, x, "--all")) try appendAllRefs(a, r, &starts) else if (std.mem.eql(u8, x, "--not")) { i += 1; if (i < argv.len) try excl.append(argv[i]); } else if (std.mem.startsWith(u8, x, "^")) try excl.append(x[1..]) else try starts.append(x); i += 1; } if (starts.items.len == 0) try starts.append("HEAD"); var excluded = std.StringHashMap(void).init(a); for (excl.items) |e| { if (try resolveCommit(a, r, e)) |co| try markReachable(a, r, co, &excluded); } var stack = std.ArrayList([]const u8).init(a); for (starts.items) |s| { if (try resolveCommit(a, r, s)) |co| try stack.append(co); } var seen = std.StringHashMap(void).init(a); var emitted: usize = 0; while (stack.items.len != 0 and emitted < max) { const cur = stack.orderedRemove(stack.items.len - 1); if (seen.contains(cur) or excluded.contains(cur)) continue; try seen.put(cur, {}); const ps = try commitParents(a, r, cur); if (!count) { if (parents) { try std.io.getStdOut().writer().print("{s}", .{cur}); for (ps.items) |p| try std.io.getStdOut().writer().print(" {s}", .{p}); try std.io.getStdOut().writer().writeAll("\n"); } else try std.io.getStdOut().writer().print("{s}\n", .{cur}); } emitted += 1; for (ps.items) |p| try stack.append(p); } if (count) try std.io.getStdOut().writer().print("{}\n", .{emitted}); }
+fn resolveCommit(a: Allocator, r: Repository, rev: []const u8) !?[]const u8 { const oid = (try resolveRev(a, r, rev)) orelse return null; return peelCommit(a, r, oid); }
+fn commitParents(a: Allocator, r: Repository, oid: []const u8) !std.ArrayList([]const u8) { var out = std.ArrayList([]const u8).init(a); const o = readObj(a, r.git_dir, oid) catch return out; if (!std.mem.eql(u8, o.typ, "commit")) return out; var it = std.mem.splitScalar(u8, o.data, '\n'); while (it.next()) |line| { if (line.len == 0) break; if (std.mem.startsWith(u8, line, "parent ") and isHex(line[7..])) try out.append(line[7..47]); } return out; }
+fn markReachable(a: Allocator, r: Repository, start: []const u8, set: *std.StringHashMap(void)) !void { var stack = std.ArrayList([]const u8).init(a); try stack.append(start); while (stack.items.len != 0) { const cur = stack.orderedRemove(stack.items.len - 1); if (set.contains(cur)) continue; try set.put(cur, {}); const ps = try commitParents(a, r, cur); for (ps.items) |p| try stack.append(p); } }
+fn appendAllRefs(a: Allocator, r: Repository, out: *std.ArrayList([]const u8)) !void { var refs = std.ArrayList(RefEntry).init(a); try collect(a, r.git_dir, "refs/heads", &refs); try collect(a, r.git_dir, "refs/tags", &refs); for (refs.items) |rr| try out.append(rr.oid); }
+
+fn resolveRev(a: Allocator, r: Repository, name: []const u8) !?[]const u8 { if (isHex(name)) return name[0..40]; if (std.mem.eql(u8, name, "HEAD")) { const h = readRawRef(a, r.git_dir, "HEAD") catch return null; if (std.mem.startsWith(u8, h, "ref: ")) return resolveRev(a, r, std.mem.trim(u8, h[5..], " \t\r\n")); if (isHex(h)) return h[0..40]; return null; } if (std.mem.startsWith(u8, name, "refs/")) { const v = readRawRef(a, r.git_dir, name) catch return null; if (isHex(v)) return v[0..40]; return null; } const br = try std.fmt.allocPrint(a, "refs/heads/{s}", .{name}); if (try resolveRev(a, r, br)) |o| return o; const tg = try std.fmt.allocPrint(a, "refs/tags/{s}", .{name}); return resolveRev(a, r, tg); }
+fn readRawRef(a: Allocator, gd: []const u8, n: []const u8) ![]const u8 { const p = try std.fs.path.join(a, &.{gd, n}); const c = try std.fs.cwd().readFileAlloc(a, p, 4096); return std.mem.trim(u8, c, " \t\r\n"); }
+fn headerValue(data: []const u8, prefix: []const u8) ?[]const u8 { var it = std.mem.splitScalar(u8, data, '\n'); while (it.next()) |line| { if (line.len == 0) break; if (std.mem.startsWith(u8, line, prefix)) return line[prefix.len..]; } return null; }
+fn peelCommit(a: Allocator, r: Repository, oid: []const u8) !?[]const u8 { var cur = oid[0..40]; var n: usize = 0; while (n < 8) : (n += 1) { const o = try readObj(a, r.git_dir, cur); if (std.mem.eql(u8, o.typ, "commit")) return cur; if (std.mem.eql(u8, o.typ, "tag")) { const next = headerValue(o.data, "object ") orelse return null; if (!isHex(next)) return null; cur = next[0..40]; } else return null; } return null; }
+fn cmdRevParse(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    const r = try repo(a, g);
+    var verify = false; var abbrev_ref = false; var short_len: ?usize = null; var printed = false; var i: usize = 0; var sq = false; var sq_quote = false; var revs_only = false; var no_revs = false; var flags_only = false; var no_flags = false;
+    while (i < argv.len) { const x = argv[i];
+        if (std.mem.eql(u8, x, "--git-dir")) { try emitRevParse(r.git_dir, sq, &printed); }
+        else if (std.mem.eql(u8, x, "--absolute-git-dir")) { const p = std.fs.cwd().realpathAlloc(a, r.git_dir) catch try a.dupe(u8, r.git_dir); try emitRevParse(p, sq, &printed); }
+        else if (std.mem.eql(u8, x, "--show-toplevel")) { if (r.work_tree) |wt| try emitRevParse(wt, sq, &printed) else std.process.exit(1); }
+        else if (std.mem.eql(u8, x, "--show-prefix")) { try printPrefix(a, r); printed = true; }
+        else if (std.mem.eql(u8, x, "--show-cdup")) { try printCdup(a, r); printed = true; }
+        else if (std.mem.eql(u8, x, "--show-superproject-working-tree")) { try std.io.getStdOut().writer().writeAll("\n"); printed = true; }
+        else if (std.mem.eql(u8, x, "--is-inside-work-tree")) { try emitRevParse(if (r.work_tree != null and !r.bare) "true" else "false", sq, &printed); }
+        else if (std.mem.eql(u8, x, "--is-bare-repository")) { try emitRevParse(if (r.bare) "true" else "false", sq, &printed); }
+        else if (std.mem.eql(u8, x, "--verify")) verify = true
+        else if (std.mem.eql(u8, x, "--short")) short_len = 7
+        else if (std.mem.startsWith(u8, x, "--short=")) short_len = std.fmt.parseInt(usize, x[8..], 10) catch 7
+        else if (std.mem.eql(u8, x, "--abbrev-ref")) abbrev_ref = true
+        else if (std.mem.eql(u8, x, "--sq")) sq = true
+        else if (std.mem.eql(u8, x, "--sq-quote")) { sq = true; sq_quote = true; }
+        else if (std.mem.eql(u8, x, "--revs-only")) { revs_only = true; no_revs = false; flags_only = false; }
+        else if (std.mem.eql(u8, x, "--no-revs")) { no_revs = true; revs_only = false; }
+        else if (std.mem.eql(u8, x, "--flags")) { flags_only = true; no_flags = false; revs_only = false; }
+        else if (std.mem.eql(u8, x, "--no-flags")) { no_flags = true; flags_only = false; }
+        else if (std.mem.startsWith(u8, x, "-")) { if (!no_flags and (flags_only or no_revs)) try emitRevParse(x, sq, &printed); }
+        else if (sq_quote) try emitRevParse(x, true, &printed)
+        else { const oid = try resolveRev(a, r, x); if (oid) |o| { if (!no_revs and !flags_only) { if (abbrev_ref and std.mem.eql(u8, x, "HEAD")) { const h = readRawRef(a, r.git_dir, "HEAD") catch "HEAD"; if (std.mem.startsWith(u8, h, "ref: ")) try emitRevParse(shortRef(std.mem.trim(u8, h[5..], " \t\r\n")), sq, &printed) else try emitRevParse("HEAD", sq, &printed); } else if (short_len) |n0| { const n = @min(@max(n0, @as(usize, 4)), @as(usize, 40)); try emitRevParse(o[0..n], sq, &printed); } else try emitRevParse(o, sq, &printed); } } else if (verify) std.process.exit(1); }
+        i += 1;
+    }
+    if (sq and printed) try std.io.getStdOut().writer().writeAll("\n");
+    if (verify and !printed) std.process.exit(1);
+}
+fn emitRevParse(s: []const u8, sq: bool, printed: *bool) !void { if (sq) { if (printed.*) try std.io.getStdOut().writer().writeByte(' '); try shellQuote(s); printed.* = true; } else { try std.io.getStdOut().writer().print("{s}\n", .{s}); printed.* = true; } }
+fn shellQuote(s: []const u8) !void { const w = std.io.getStdOut().writer(); try w.writeByte('\''); for (s) |c| { if (c == '\'') try w.writeAll("'\\''") else try w.writeByte(c); } try w.writeByte('\''); }
+fn printCdup(a: Allocator, r: Repository) !void { const cwd = try std.fs.cwd().realpathAlloc(a, "."); if (r.work_tree) |wt| { if (std.mem.startsWith(u8, cwd, wt) and cwd.len > wt.len) { var rel = cwd[wt.len..]; if (rel.len > 0 and (rel[0] == '/' or rel[0] == '\\')) rel = rel[1..]; var it = std.mem.splitScalar(u8, rel, std.fs.path.sep); while (it.next()) |part| if (part.len > 0) try std.io.getStdOut().writer().writeAll("../"); } } try std.io.getStdOut().writer().writeAll("\n"); }
+fn printPrefix(a: Allocator, r: Repository) !void { const cwd = try std.fs.cwd().realpathAlloc(a, "."); if (r.work_tree) |wt| { if (std.mem.startsWith(u8, cwd, wt) and cwd.len > wt.len) { var rel = cwd[wt.len..]; if (rel.len > 0 and (rel[0] == '/' or rel[0] == '\\')) rel = rel[1..]; if (rel.len > 0) { try std.io.getStdOut().writer().print("{s}/\n", .{rel}); return; } } } try std.io.getStdOut().writer().writeAll("\n"); }
+fn printAbbrevHead(a: Allocator, r: Repository) !void { const h = readRawRef(a, r.git_dir, "HEAD") catch { try std.io.getStdOut().writer().writeAll("HEAD\n"); return; }; if (std.mem.startsWith(u8, h, "ref: ")) { const ref = std.mem.trim(u8, h[5..], " \t\r\n"); try std.io.getStdOut().writer().print("{s}\n", .{shortRef(ref)}); } else try std.io.getStdOut().writer().writeAll("HEAD\n"); }
+
+fn cmdSymbolicRef(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); var quiet = false; var short = false; var del = false; var pos = std.ArrayList([]const u8).init(a); var i: usize = 0; while (i < argv.len) { const x = argv[i]; if (std.mem.eql(u8, x, "-q") or std.mem.eql(u8, x, "--quiet")) quiet = true else if (std.mem.eql(u8, x, "--short")) short = true else if (std.mem.eql(u8, x, "--delete") or std.mem.eql(u8, x, "-d")) del = true else if (std.mem.eql(u8, x, "-m")) { i += 1; } else if (std.mem.startsWith(u8, x, "-")) {} else try pos.append(x); i += 1; } if (pos.items.len < 1) { if (quiet) std.process.exit(1); return die("symbolic-ref: missing ref", .{}); } const name = pos.items[0]; const p = try std.fs.path.join(a, &.{r.git_dir, name}); if (del) { std.fs.cwd().deleteFile(p) catch { if (quiet) std.process.exit(1); return die("could not delete {s}", .{name}); }; return; } if (pos.items.len >= 2) { try writeFileFmt(a, r.git_dir, name, "ref: {s}\n", .{pos.items[1]}); return; } const raw = std.fs.cwd().readFileAlloc(a, p, 4096) catch { if (quiet) std.process.exit(1); return die("No such ref: {s}", .{name}); }; const t = std.mem.trim(u8, raw, " \t\r\n"); if (!std.mem.startsWith(u8, t, "ref: ")) { if (quiet) std.process.exit(1); return die("ref {s} is not a symbolic ref", .{name}); } const ref = std.mem.trim(u8, t[5..], " \t\r\n"); try std.io.getStdOut().writer().print("{s}\n", .{if (short) shortRef(ref) else ref}); }
+fn shortRef(r: []const u8) []const u8 { if (std.mem.startsWith(u8, r, "refs/heads/")) return r[11..]; if (std.mem.startsWith(u8, r, "refs/tags/")) return r[10..]; return r; }
+fn cmdUpdateRef(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { const r = try repo(a, g); if (argv.len >= 2) try writeFileFmt(a, r.git_dir, argv[0], "{s}\n", .{argv[1]}); }
+fn cmdShowRef(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    const r = try repo(a, g);
+    var verify = false; var quiet = false; var heads = false; var tags = false; var hash_only = false; var hash_len: usize = 40;
+    var pats = std.ArrayList([]const u8).init(a); var i: usize = 0;
+    while (i < argv.len) { const x = argv[i];
+        if (std.mem.eql(u8, x, "--verify")) verify = true
+        else if (std.mem.eql(u8, x, "--quiet") or std.mem.eql(u8, x, "-q")) quiet = true
+        else if (std.mem.eql(u8, x, "--heads")) heads = true
+        else if (std.mem.eql(u8, x, "--tags")) tags = true
+        else if (std.mem.eql(u8, x, "--hash")) hash_only = true
+        else if (std.mem.startsWith(u8, x, "--hash=")) { hash_only = true; hash_len = parseShowRefLen(x[7..]); }
+        else if (std.mem.startsWith(u8, x, "-")) {}
+        else try pats.append(x);
+        i += 1;
+    }
+    if (hash_len < 4) hash_len = 4; if (hash_len > 40) hash_len = 40;
+    var refs = std.ArrayList(RefEntry).init(a);
+    if (!heads and !tags) { try collect(a, r.git_dir, "refs/heads", &refs); try collect(a, r.git_dir, "refs/tags", &refs); }
+    else { if (heads) try collect(a, r.git_dir, "refs/heads", &refs); if (tags) try collect(a, r.git_dir, "refs/tags", &refs); }
+    var hit = false;
+    for (refs.items) |rr| { if (!showRefMatch(rr.name, pats.items, verify)) continue; hit = true; if (!quiet) try printShowRef(rr, hash_only, hash_len); }
+    if (!hit) std.process.exit(1);
+}
+fn parseShowRefLen(s: []const u8) usize { return std.fmt.parseInt(usize, s, 10) catch 40; }
+fn showRefMatch(name: []const u8, pats: []const []const u8, verify: bool) bool { if (pats.len == 0) return !verify; for (pats) |p| { if (verify) { if (std.mem.eql(u8, name, p)) return true; } else if (std.mem.eql(u8, name, p) or std.mem.endsWith(u8, name, p) or std.mem.indexOf(u8, name, p) != null) return true; } return false; }
+fn printShowRef(rr: RefEntry, hash_only: bool, n: usize) !void { const oid = if (rr.oid.len >= n) rr.oid[0..n] else rr.oid; if (hash_only) try std.io.getStdOut().writer().print("{s}\n", .{oid}) else try std.io.getStdOut().writer().print("{s} {s}\n", .{oid, rr.name}); }
+
+fn cmdBranch(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void { _ = a; _ = g; _ = argv; }
+
+fn cmdConfig(a: Allocator, g: GlobalOptions, argv: []const []const u8) !void {
+    var use_global = false; var do_get = false; var do_get_all = false; var do_list = false; var do_unset = false; var as_bool = false; var get_re = false; var add_mode = false; var replace_all = false; var name_only = false; var nul = false; var file_path: ?[]const u8 = null;
+    var pos = std.ArrayList([]const u8).init(a); var i: usize = 0;
+    while (i < argv.len) { const x = argv[i];
+        if (std.mem.eql(u8, x, "--global")) use_global = true
+        else if (std.mem.eql(u8, x, "--local")) use_global = false
+        else if (std.mem.eql(u8, x, "--get")) do_get = true
+        else if (std.mem.eql(u8, x, "--get-all")) do_get_all = true
+        else if (std.mem.eql(u8, x, "--list") or std.mem.eql(u8, x, "-l")) do_list = true
+        else if (std.mem.eql(u8, x, "--unset")) do_unset = true
+        else if (std.mem.eql(u8, x, "--bool")) as_bool = true
+        else if (std.mem.eql(u8, x, "--get-regexp")) get_re = true
+        else if (std.mem.eql(u8, x, "--add")) add_mode = true
+        else if (std.mem.eql(u8, x, "--replace-all")) replace_all = true
+        else if (std.mem.eql(u8, x, "--name-only")) name_only = true
+        else if (std.mem.eql(u8, x, "--null") or std.mem.eql(u8, x, "-z")) nul = true
+        else if (std.mem.eql(u8, x, "--file") or std.mem.eql(u8, x, "-f")) { i += 1; if (i < argv.len) file_path = argv[i]; }
+        else if (std.mem.startsWith(u8, x, "--file=")) file_path = x[7..]
+        else if (std.mem.startsWith(u8, x, "-")) {}
+        else try pos.append(x);
+        i += 1;
+    }
+    const path = if (file_path) |fp| fp else try configPath(a, g, use_global); var entries = try readConfigEntries(a, path); const sep: u8 = if (nul) 0 else '\n';
+    if (do_list) { for (entries.items) |e| { if (name_only) try std.io.getStdOut().writer().writeAll(e.key) else try std.io.getStdOut().writer().print("{s}={s}", .{e.key, e.value}); try std.io.getStdOut().writer().writeByte(sep); } return; }
+    if (get_re) { if (pos.items.len < 1) std.process.exit(1); var hit = false; for (entries.items) |e| { if (std.mem.indexOf(u8, e.key, pos.items[0]) != null) { hit = true; if (name_only) try std.io.getStdOut().writer().writeAll(e.key) else try std.io.getStdOut().writer().print("{s} {s}", .{e.key, e.value}); try std.io.getStdOut().writer().writeByte(sep); } } if (!hit) std.process.exit(1); return; }
+    if (do_unset) { if (pos.items.len < 1) return; var n: usize = 0; while (n < entries.items.len) { if (configKeyEq(entries.items[n].key, pos.items[0])) _ = entries.orderedRemove(n) else n += 1; } try writeConfigEntries(a, path, entries.items); return; }
+    if (pos.items.len >= 2) { if (replace_all) { var n: usize = 0; while (n < entries.items.len) { if (configKeyEq(entries.items[n].key, pos.items[0])) _ = entries.orderedRemove(n) else n += 1; } try entries.append(.{ .key = try a.dupe(u8, pos.items[0]), .value = try a.dupe(u8, pos.items[1]) }); } else if (add_mode) { try entries.append(.{ .key = try a.dupe(u8, pos.items[0]), .value = try a.dupe(u8, pos.items[1]) }); } else { var found = false; for (entries.items) |*e| { if (configKeyEq(e.key, pos.items[0]) and !found) { e.value = try a.dupe(u8, pos.items[1]); found = true; } } if (!found) try entries.append(.{ .key = try a.dupe(u8, pos.items[0]), .value = try a.dupe(u8, pos.items[1]) }); } try writeConfigEntries(a, path, entries.items); return; }
+    if (pos.items.len >= 1 or do_get or do_get_all) { const key = if (pos.items.len >= 1) pos.items[0] else ""; var hit = false; for (entries.items) |e| { if (configKeyEq(e.key, key)) { hit = true; if (name_only) try std.io.getStdOut().writer().writeAll(e.key) else { const v = if (as_bool) configBool(e.value) else e.value; try std.io.getStdOut().writer().writeAll(v); } try std.io.getStdOut().writer().writeByte(sep); if (!do_get_all) return; } } if (!hit) std.process.exit(1); }
+}
+fn configPath(a: Allocator, g: GlobalOptions, use_global: bool) ![]const u8 { if (use_global) { const home = std.process.getEnvVarOwned(a, "HOME") catch try a.dupe(u8, "."); return std.fs.path.join(a, &.{home, ".gitconfig"}); } const r = try repo(a, g); return std.fs.path.join(a, &.{r.git_dir, "config"}); }
+fn readConfigEntries(a: Allocator, path: []const u8) !std.ArrayList(ConfigEntry) { var es = std.ArrayList(ConfigEntry).init(a); const data = std.fs.cwd().readFileAlloc(a, path, 1 << 20) catch return es; var section: []const u8 = ""; var it = std.mem.splitScalar(u8, data, '\n'); while (it.next()) |raw| { const line = std.mem.trim(u8, raw, " \t\r"); if (line.len == 0 or line[0] == '#' or line[0] == ';') continue; if (line[0] == '[') { if (std.mem.indexOfScalar(u8, line, ']')) |end| section = try parseSection(a, line[1..end]); continue; } const eq = std.mem.indexOfScalar(u8, line, '='); const cut = eq orelse firstSpace(line); if (cut) |c| { const name = std.mem.trim(u8, line[0..c], " \t"); var val = if (eq != null) std.mem.trim(u8, line[c + 1..], " \t\r") else std.mem.trim(u8, line[c..], " \t\r"); if (val.len >= 2 and val[0] == '"' and val[val.len - 1] == '"') val = val[1..val.len - 1]; if (name.len > 0) try es.append(.{ .key = try std.fmt.allocPrint(a, "{s}.{s}", .{section, name}), .value = try a.dupe(u8, val) }); } else if (line.len > 0) try es.append(.{ .key = try std.fmt.allocPrint(a, "{s}.{s}", .{section, line}), .value = try a.dupe(u8, "true") }); } return es; }
+fn parseSection(a: Allocator, s: []const u8) ![]const u8 { const t = std.mem.trim(u8, s, " \t"); if (std.mem.indexOfScalar(u8, t, '"')) |q1| { if (std.mem.lastIndexOfScalar(u8, t, '"')) |q2| { if (q2 > q1) { const base = std.mem.trim(u8, t[0..q1], " \t"); return std.fmt.allocPrint(a, "{s}.{s}", .{base, t[q1 + 1..q2]}); } } } return a.dupe(u8, t); }
+fn firstSpace(s: []const u8) ?usize { for (s, 0..) |c, i| { if (c == ' ' or c == '\t') return i; } return null; }
+fn configKeyEq(a: []const u8, b: []const u8) bool { return std.ascii.eqlIgnoreCase(a, b); }
+fn configBool(v: []const u8) []const u8 { if (std.ascii.eqlIgnoreCase(v, "true") or std.ascii.eqlIgnoreCase(v, "yes") or std.ascii.eqlIgnoreCase(v, "on") or std.mem.eql(u8, v, "1")) return "true"; if (std.ascii.eqlIgnoreCase(v, "false") or std.ascii.eqlIgnoreCase(v, "no") or std.ascii.eqlIgnoreCase(v, "off") or std.mem.eql(u8, v, "0")) return "false"; return v; }
+fn writeConfigEntries(a: Allocator, path: []const u8, es: []const ConfigEntry) !void { if (std.fs.path.dirname(path)) |d| try std.fs.cwd().makePath(d); var out = std.ArrayList(u8).init(a); for (es) |e| { const ks = try configSectionName(a, e.key); try out.writer().print("[{s}]\n\t{s} = {s}\n", .{ks.section, ks.name, e.value}); } const f = try std.fs.cwd().createFile(path, .{ .truncate = true }); defer f.close(); try f.writeAll(out.items); }
+const KeySplit = struct { section: []const u8, name: []const u8 };
+fn configSectionName(a: Allocator, key: []const u8) !KeySplit { var it = std.mem.splitScalar(u8, key, '.'); const p0 = it.next() orelse key; const p1 = it.next() orelse return .{ .section = try a.dupe(u8, "core"), .name = key }; const rest = it.rest(); if (rest.len == 0) return .{ .section = try a.dupe(u8, p0), .name = try a.dupe(u8, p1) }; return .{ .section = try std.fmt.allocPrint(a, "{s} \"{s}\"", .{p0, p1}), .name = try a.dupe(u8, rest) }; }
+
+fn readRef(a: Allocator, gd: []const u8, n: []const u8) ![]const u8 { const p = try std.fs.path.join(a, &.{gd, n}); const c = try std.fs.cwd().readFileAlloc(a, p, 4096); return std.mem.trim(u8, c, " \r\n\t"); }
+fn collect(a: Allocator, gd: []const u8, prefix: []const u8, refs: *std.ArrayList(RefEntry)) !void { const p = try std.fs.path.join(a, &.{gd, prefix}); var d = std.fs.cwd().openDir(p, .{ .iterate = true }) catch return; var it = d.iterate(); while (try it.next()) |e| { const n = try std.fs.path.join(a, &.{prefix, e.name}); if (e.kind == .directory) try collect(a, gd, n, refs) else { const oid = readRef(a, gd, n) catch continue; try refs.append(.{ .name = n, .oid = oid }); } } }
+
+fn be32(b: []const u8, o: usize) u32 { return (@as(u32, b[o]) << 24) | (@as(u32, b[o + 1]) << 16) | (@as(u32, b[o + 2]) << 8) | @as(u32, b[o + 3]); }
+fn au32(o: *std.ArrayList(u8), v: u32) !void { try o.append(@intCast(v >> 24)); try o.append(@intCast((v >> 16) & 255)); try o.append(@intCast((v >> 8) & 255)); try o.append(@intCast(v & 255)); }
+fn au16(o: *std.ArrayList(u8), v: u16) !void { try o.append(@intCast(v >> 8)); try o.append(@intCast(v & 255)); }
+fn hex(d: [20]u8) [40]u8 { const t = "0123456789abcdef"; var o: [40]u8 = undefined; for (d, 0..) |b, i| { o[i * 2] = t[b >> 4]; o[i * 2 + 1] = t[b & 15]; } return o; }
+fn isHex(s: []const u8) bool { if (s.len < 40) return false; for (s[0..40]) |c| { if (!((c >= '0' and c <= '9') or (c >= 'a' and c <= 'f') or (c >= 'A' and c <= 'F'))) return false; } return true; }
+fn unhex20(s: []const u8) ![20]u8 { var o: [20]u8 = undefined; var i: usize = 0; while (i < 20) : (i += 1) { const hi = hv(s[i * 2]) orelse return error.Bad; const lo = hv(s[i * 2 + 1]) orelse return error.Bad; o[i] = (hi << 4) | lo; } return o; }
+fn hv(c: u8) ?u8 { if (c >= '0' and c <= '9') return c - '0'; if (c >= 'a' and c <= 'f') return c - 'a' + 10; if (c >= 'A' and c <= 'F') return c - 'A' + 10; return null; }
+fn modeStr(m: u32) []const u8 { return if (m == 0o100755) "100755" else "100644"; }
+fn zstore(a: Allocator, d: []const u8) ![]u8 { var o = std.ArrayList(u8).init(a); try o.append(0x78); try o.append(0x01); try o.append(1); try au16le(&o, @intCast(d.len)); try au16le(&o, ~@as(u16, @intCast(d.len))); try o.appendSlice(d); const ad = adler(d); try au32(&o, ad); return o.toOwnedSlice(); }
+fn au16le(o: *std.ArrayList(u8), v: u16) !void { try o.append(@intCast(v & 255)); try o.append(@intCast(v >> 8)); }
+fn zunstore(a: Allocator, z: []const u8) ![]u8 { var o = std.ArrayList(u8).init(a); var i: usize = 2; while (i + 5 <= z.len) { const final = (z[i] & 1) != 0; i += 1; const l16 = @as(u16, z[i]) | (@as(u16, z[i + 1]) << 8); const l: usize = l16; i += 4; if (i + l > z.len) break; try o.appendSlice(z[i..i + l]); i += l; if (final) break; } return o.toOwnedSlice(); }
+fn adler(d: []const u8) u32 { var s1: u32 = 1; var s2: u32 = 0; for (d) |b| { s1 = (s1 + b) % 65521; s2 = (s2 + s1) % 65521; } return (s2 << 16) | s1; }
+=== END FILE ===

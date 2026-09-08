@@ -299,7 +299,12 @@ async def run_validation_async(
         try:
             workspace.mkdir()
             seed_dir = task_dir / "seed"
-            has_seed = seed_dir.is_dir() and any(seed_dir.iterdir())
+            # Mirror the copy loop below: a seed/ that exists but contributes
+            # nothing to the workspace (empty, or only __pycache__) is treated
+            # as absent so the progress messages describe what actually runs.
+            has_seed = seed_dir.is_dir() and any(
+                item.name != "__pycache__" for item in seed_dir.iterdir()
+            )
             if has_seed:
                 for item in seed_dir.iterdir():
                     if item.name == "__pycache__":
@@ -369,7 +374,7 @@ async def run_validation_async(
             name=config.task.name,
             description=config.task.description,
         )
-        target = "seed code" if seed_dir.is_dir() else "empty workspace"
+        target = "seed code" if has_seed else "empty workspace"
         emit("baseline", "started", f"Running grader against {target}...")
         try:
             baseline = await grader.grade(str(workspace), [task])

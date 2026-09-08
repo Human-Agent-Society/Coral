@@ -1,0 +1,904 @@
+=== FILE: dart-style.cabal ===
+cabal-version:      3.0
+name:               dart-style
+version:            0.1.0.0
+build-type:         Simple
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Frontier SWE
+maintainer:         none
+synopsis:           Minimal Haskell Dart formatter CLI
+category:           Development
+
+executable dart-style
+  main-is:          Main.hs
+  hs-source-dirs:   app, src
+  other-modules:    CLI
+                  , Formatter
+                  , DirectiveFormatter
+                  , VariableFormatter
+  build-depends:    base >=4.18 && <5
+  default-language: Haskell2010
+  ghc-options:      -Wall -Wcompat -O2
+=== END FILE ===
+
+=== FILE: LICENSE ===
+BSD 3-Clause License
+
+Copyright (c) 2026, Frontier SWE
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+=== END FILE ===
+
+=== FILE: app/Main.hs ===
+module Main (main) where
+
+import CLI (Options (..), ParseResult (..), parseArgs, usage, versionText)
+import Formatter (formatSource)
+import System.Environment (getArgs)
+import System.Exit (die)
+
+main :: IO ()
+main = do
+  args <- getArgs
+  case parseArgs args of
+    ParseHelp -> putStr usage
+    ParseVersion -> putStrLn versionText
+    ParseError message -> die (message ++ "\n\n" ++ usage)
+    ParseOk opts -> do
+      input <- readInput (optFiles opts)
+      putStr (formatSource opts input)
+
+readInput :: [FilePath] -> IO String
+readInput [] = getContents
+readInput paths = concat <$> mapM readFile paths
+=== END FILE ===
+
+=== FILE: src/CLI.hs ===
+module CLI
+  ( Options (..)
+  , Mode (..)
+  , TrailingCommas (..)
+  , ParseResult (..)
+  , defaultOptions
+  , parseArgs
+  , usage
+  , versionText
+  ) where
+
+import Data.Char (isDigit)
+import Text.Read (readMaybe)
+
+newtype LanguageVersion = LanguageVersion String
+  deriving (Eq, Show)
+
+data Mode
+  = Statement
+  | CompilationUnit
+  deriving (Eq, Show)
+
+data TrailingCommas
+  = TrailingCommasAutomate
+  | TrailingCommasPreserve
+  deriving (Eq, Show)
+
+data Options = Options
+  { optPageWidth :: Maybe Int
+  , optIndent :: Maybe Int
+  , optLanguageVersion :: Maybe LanguageVersion
+  , optMode :: Mode
+  , optTrailingCommas :: Maybe TrailingCommas
+  , optExperiments :: [String]
+  , optFiles :: [FilePath]
+  }
+  deriving (Eq, Show)
+
+data ParseResult
+  = ParseOk Options
+  | ParseHelp
+  | ParseVersion
+  | ParseError String
+  deriving (Eq, Show)
+
+defaultOptions :: Options
+defaultOptions =
+  Options
+    { optPageWidth = Nothing
+    , optIndent = Nothing
+    , optLanguageVersion = Nothing
+    , optMode = CompilationUnit
+    , optTrailingCommas = Nothing
+    , optExperiments = []
+    , optFiles = []
+    }
+
+versionText :: String
+versionText = "dart-style 0.1.0.0"
+
+usage :: String
+usage = unlines
+  [ "Usage: dart-style [options] [files...]"
+  , ""
+  , "Options:"
+  , "  --page-width N                 Accept page width (currently ignored)"
+  , "  --indent N                     Accept indentation width (currently ignored)"
+  , "  --language-version X.Y         Accept Dart language version (currently ignored)"
+  , "  --statement                    Treat input as a statement"
+  , "  --compilation-unit             Treat input as a compilation unit"
+  , "  --trailing-commas MODE         MODE is automate or preserve (currently ignored)"
+  , "  --enable-experiment NAME       Accept an enabled experiment name (ignored)"
+  , "  --help                         Show this help"
+  , "  --version                      Show version"
+  ]
+
+parseArgs :: [String] -> ParseResult
+parseArgs = go defaultOptions
+  where
+    go opts [] = ParseOk opts { optExperiments = reverse (optExperiments opts)
+                              , optFiles = reverse (optFiles opts)
+                              }
+    go _ ("--help" : _) = ParseHelp
+    go _ ("-h" : _) = ParseHelp
+    go _ ("--version" : _) = ParseVersion
+    go opts ("--statement" : rest) = go opts { optMode = Statement } rest
+    go opts ("--compilation-unit" : rest) = go opts { optMode = CompilationUnit } rest
+    go opts ("--" : rest) = ParseOk opts { optExperiments = reverse (optExperiments opts)
+                                          , optFiles = reverse (optFiles opts) ++ rest
+                                          }
+    go opts (arg : rest)
+      | Just value <- stripPrefixEq "--page-width=" arg = setInt "--page-width" (\n -> opts { optPageWidth = Just n }) value rest
+      | arg == "--page-width" = needValue arg rest $ \value rest' -> setInt arg (\n -> opts { optPageWidth = Just n }) value rest'
+      | Just value <- stripPrefixEq "--indent=" arg = setInt "--indent" (\n -> opts { optIndent = Just n }) value rest
+      | arg == "--indent" = needValue arg rest $ \value rest' -> setInt arg (\n -> opts { optIndent = Just n }) value rest'
+      | Just value <- stripPrefixEq "--language-version=" arg = setLanguage value rest
+      | arg == "--language-version" = needValue arg rest $ \value rest' -> setLanguage value rest'
+      | Just value <- stripPrefixEq "--trailing-commas=" arg = setTrailing value rest
+      | arg == "--trailing-commas" = needValue arg rest $ \value rest' -> setTrailing value rest'
+      | Just value <- stripPrefixEq "--enable-experiment=" arg = go opts { optExperiments = value : optExperiments opts } rest
+      | arg == "--enable-experiment" = needValue arg rest $ \value rest' -> go opts { optExperiments = value : optExperiments opts } rest'
+      | startsWithDash arg = ParseError ("unrecognized option: " ++ arg)
+      | otherwise = go opts { optFiles = arg : optFiles opts } rest
+      where
+        setLanguage value rest' =
+          if validLanguageVersion value
+            then go opts { optLanguageVersion = Just (LanguageVersion value) } rest'
+            else ParseError ("invalid --language-version: " ++ value)
+
+        setTrailing value rest' =
+          case value of
+            "automate" -> go opts { optTrailingCommas = Just TrailingCommasAutomate } rest'
+            "preserve" -> go opts { optTrailingCommas = Just TrailingCommasPreserve } rest'
+            _ -> ParseError ("invalid --trailing-commas: " ++ value)
+
+        setInt option update value rest' =
+          case readMaybe value of
+            Just n | n > (0 :: Int) -> go (update n) rest'
+            _ -> ParseError ("invalid " ++ option ++ ": " ++ value)
+
+needValue :: String -> [String] -> (String -> [String] -> ParseResult) -> ParseResult
+needValue option args continue =
+  case args of
+    [] -> ParseError ("missing value for " ++ option)
+    value : rest -> continue value rest
+
+stripPrefixEq :: String -> String -> Maybe String
+stripPrefixEq prefix text =
+  case splitAt (length prefix) text of
+    (front, back) | front == prefix -> Just back
+    _ -> Nothing
+
+startsWithDash :: String -> Bool
+startsWithDash ('-' : _) = True
+startsWithDash _ = False
+
+validLanguageVersion :: String -> Bool
+validLanguageVersion text =
+  case break (== '.') text of
+    (major, '.' : minor) -> all isDigit major && all isDigit minor && not (null major) && not (null minor)
+    _ -> False
+=== END FILE ===
+
+=== FILE: src/Formatter.hs ===
+module Formatter (formatSource) where
+
+import CLI (Mode (..), Options (..))
+import Data.List (intercalate, isInfixOf)
+import DirectiveFormatter (formatDirectiveLine)
+import VariableFormatter (formatVariable)
+
+formatSource :: Options -> String -> String
+formatSource opts source = ensureOneTrailingNewline formatted
+  where
+    normalized = normalizeLineEndings source
+    formatted =
+      case optMode opts of
+        CompilationUnit -> maybe (formatLines normalized) id (formatVariable normalized)
+        Statement -> formatLines normalized
+
+formatLines :: String -> String
+formatLines = intercalate "\n" . formatWithOffRegions . splitLines
+
+formatWithOffRegions :: [String] -> [String]
+formatWithOffRegions = go False
+  where
+    go _ [] = []
+    go False (line : rest)
+      | isFormatOffLine line = line : go True rest
+      | otherwise = formatDirectiveLine (normalizeLeadingTabs line) : go False rest
+    go True (line : rest)
+      | isFormatOnLine line = line : go False rest
+      | otherwise = line : go True rest
+
+normalizeLeadingTabs :: String -> String
+normalizeLeadingTabs [] = []
+normalizeLeadingTabs ('\t' : rest) = "  " ++ normalizeLeadingTabs rest
+normalizeLeadingTabs (' ' : rest) = ' ' : normalizeLeadingTabs rest
+normalizeLeadingTabs text = text
+
+isFormatOffLine :: String -> Bool
+isFormatOffLine = isInfixOf "// dart format off"
+
+isFormatOnLine :: String -> Bool
+isFormatOnLine = isInfixOf "// dart format on"
+
+splitLines :: String -> [String]
+splitLines [] = []
+splitLines text =
+  case break (== '\n') text of
+    (line, []) -> [line]
+    (line, _ : rest) -> line : splitLines rest
+
+normalizeLineEndings :: String -> String
+normalizeLineEndings [] = []
+normalizeLineEndings ('\r' : '\n' : rest) = '\n' : normalizeLineEndings rest
+normalizeLineEndings ('\r' : rest) = '\n' : normalizeLineEndings rest
+normalizeLineEndings (c : rest) = c : normalizeLineEndings rest
+
+ensureOneTrailingNewline :: String -> String
+ensureOneTrailingNewline text = dropTrailingNewlines text ++ "\n"
+
+dropTrailingNewlines :: String -> String
+dropTrailingNewlines = reverse . dropWhile (== '\n') . reverse
+=== END FILE ===
+
+=== FILE: src/DirectiveFormatter.hs ===
+module DirectiveFormatter (formatDirectiveLine) where
+
+import Data.Char (isAlpha, isAlphaNum, isSpace)
+import Data.List (isPrefixOf)
+
+data Piece
+  = Atom String
+  | Comma
+  deriving (Eq, Show)
+
+formatDirectiveLine :: String -> String
+formatDirectiveLine line =
+  case tryFormatDirective trimmed of
+    Just formatted -> formatted
+    Nothing -> trimmed
+  where
+    trimmed = trimTrailingSpaces line
+
+tryFormatDirective :: String -> Maybe String
+tryFormatDirective line
+  | null (dropWhile isHorizontalSpace line) = Nothing
+  | hasDangerousSyntax line = Nothing
+  | not (startsWithDirective stripped) = Nothing
+  | otherwise =
+      let (codeWithSpaces, commentSuffix0) = splitLineComment line
+          (code, spacesBeforeComment) = splitTrailingHorizontal codeWithSpaces
+          commentSuffix = spacesBeforeComment ++ commentSuffix0
+          codeTrim = trimHorizontal code
+       in if safeCompleteDirective codeTrim
+            then Just (renderDirectiveCode (dropFinalSemicolon codeTrim) ++ commentSuffix)
+            else Nothing
+  where
+    stripped = dropWhile isHorizontalSpace line
+
+startsWithDirective :: String -> Bool
+startsWithDirective text =
+  case span isIdentifierChar text of
+    (word, rest) -> word `elem` ["library", "import", "export", "part"] && boundary rest
+  where
+    boundary [] = True
+    boundary (c : _) = isHorizontalSpace c || c == '\'' || c == '"'
+
+hasDangerousSyntax :: String -> Bool
+hasDangerousSyntax text = any (`elem` ['{', '}']) text || "=>" `isPrefixInfixOf` text
+
+isPrefixInfixOf :: String -> String -> Bool
+isPrefixInfixOf needle haystack
+  | null needle = True
+  | needle `isPrefixOf` haystack = True
+  | otherwise =
+      case haystack of
+        [] -> False
+        _ : rest -> isPrefixInfixOf needle rest
+
+safeCompleteDirective :: String -> Bool
+safeCompleteDirective code =
+  not (null code) && last code == ';' && noExtraSemicolon (init code)
+
+noExtraSemicolon :: String -> Bool
+noExtraSemicolon = not . any (== ';') . maskStrings
+
+dropFinalSemicolon :: String -> String
+dropFinalSemicolon [] = []
+dropFinalSemicolon code = init code
+
+renderDirectiveCode :: String -> String
+renderDirectiveCode code =
+  case renderDottedNameDirective code of
+    Just rendered -> rendered ++ ";"
+    Nothing -> renderPieces (tokenizePieces code) ++ ";"
+
+renderDottedNameDirective :: String -> Maybe String
+renderDottedNameDirective code =
+  case consumeWord (trimHorizontal code) of
+    Just ("library", rest) -> do
+      name <- parseDottedName (trimHorizontal rest)
+      Just ("library " ++ name)
+    Just ("part", rest) -> do
+      (word, afterOf) <- consumeWord (trimHorizontal rest)
+      if word == "of"
+        then do
+          name <- parseDottedName (trimHorizontal afterOf)
+          Just ("part of " ++ name)
+        else Nothing
+    _ -> Nothing
+
+consumeWord :: String -> Maybe (String, String)
+consumeWord text =
+  let (word, rest) = span isIdentifierChar text
+   in if null word then Nothing else Just (word, rest)
+
+parseDottedName :: String -> Maybe String
+parseDottedName text = do
+  (firstPart, rest) <- parseIdentifier (dropWhile isHorizontalSpace text)
+  finish [firstPart] rest
+  where
+    finish parts rest0 =
+      case dropWhile isHorizontalSpace rest0 of
+        [] -> Just (joinWithDots (reverse parts))
+        '.' : more -> do
+          (part, rest1) <- parseIdentifier (dropWhile isHorizontalSpace more)
+          finish (part : parts) rest1
+        _ -> Nothing
+
+parseIdentifier :: String -> Maybe (String, String)
+parseIdentifier [] = Nothing
+parseIdentifier input@(c : _)
+  | not (isIdentifierStart c) = Nothing
+  | otherwise =
+      let (name, rest) = span isIdentifierChar input
+       in Just (name, rest)
+
+joinWithDots :: [String] -> String
+joinWithDots [] = ""
+joinWithDots [x] = x
+joinWithDots (x : xs) = x ++ "." ++ joinWithDots xs
+
+renderPieces :: [Piece] -> String
+renderPieces = foldl appendPiece ""
+
+appendPiece :: String -> Piece -> String
+appendPiece acc Comma = trimTrailingSpaces acc ++ ","
+appendPiece acc (Atom text)
+  | null text = acc
+  | null acc = text
+  | last acc == ',' = acc ++ " " ++ text
+  | otherwise = acc ++ " " ++ text
+
+tokenizePieces :: String -> [Piece]
+tokenizePieces [] = []
+tokenizePieces input@(c : cs)
+  | isHorizontalSpace c = tokenizePieces (dropWhile isHorizontalSpace cs)
+  | c == ',' = Comma : tokenizePieces cs
+  | startsString input = let (lit, rest) = scanString input in Atom lit : tokenizePieces rest
+  | startsConditional input, Just (cond, rest) <- scanConditional input = Atom cond : tokenizePieces rest
+  | otherwise = let (atom, rest) = breakAtom input in Atom atom : tokenizePieces rest
+
+startsConditional :: String -> Bool
+startsConditional ('i' : 'f' : rest) =
+  case dropWhile isHorizontalSpace rest of
+    '(' : _ -> True
+    _ -> False
+startsConditional _ = False
+
+scanConditional :: String -> Maybe (String, String)
+scanConditional input =
+  case dropWhile isHorizontalSpace (drop 2 input) of
+    '(' : rest ->
+      case scanParenContent 1 [] rest of
+        Just (contentReversed, remaining) ->
+          Just ("if (" ++ compactCondition (reverse contentReversed) ++ ")", remaining)
+        Nothing -> Nothing
+    _ -> Nothing
+
+scanParenContent :: Int -> String -> String -> Maybe (String, String)
+scanParenContent _ _ [] = Nothing
+scanParenContent depth acc input
+  | startsString input =
+      let (lit, rest) = scanString input
+       in scanParenContent depth (reverse lit ++ acc) rest
+scanParenContent 1 acc (')' : rest) = Just (acc, rest)
+scanParenContent depth acc (')' : rest) = scanParenContent (depth - 1) (')' : acc) rest
+scanParenContent depth acc ('(' : rest) = scanParenContent (depth + 1) ('(' : acc) rest
+scanParenContent depth acc (x : xs) = scanParenContent depth (x : acc) xs
+
+compactCondition :: String -> String
+compactCondition [] = []
+compactCondition input@(c : cs)
+  | startsString input = let (lit, rest) = scanString input in lit ++ compactCondition rest
+  | isHorizontalSpace c = compactCondition cs
+  | otherwise = c : compactCondition cs
+
+breakAtom :: String -> (String, String)
+breakAtom = span isAtomChar
+
+isAtomChar :: Char -> Bool
+isAtomChar c = not (isHorizontalSpace c) && c /= ',' && c /= ';' && c /= '\'' && c /= '"'
+
+splitLineComment :: String -> (String, String)
+splitLineComment = go []
+  where
+    go acc [] = (reverse acc, [])
+    go acc s@('/' : '/' : _) = (reverse acc, s)
+    go acc s
+      | startsString s =
+          let (lit, rest) = scanString s
+           in go (reverse lit ++ acc) rest
+    go acc (x : xs) = go (x : acc) xs
+
+maskStrings :: String -> String
+maskStrings [] = []
+maskStrings s@(c : cs)
+  | startsString s = let (lit, rest) = scanString s in replicate (length lit) ' ' ++ maskStrings rest
+  | otherwise = c : maskStrings cs
+
+startsString :: String -> Bool
+startsString ('\'' : _) = True
+startsString ('"' : _) = True
+startsString ('r' : '\'' : _) = True
+startsString ('r' : '"' : _) = True
+startsString ('R' : '\'' : _) = True
+startsString ('R' : '"' : _) = True
+startsString _ = False
+
+scanString :: String -> (String, String)
+scanString input =
+  let (rawPrefix, body) =
+        case input of
+          ('r' : q : rest) | q == '\'' || q == '"' -> ("r", q : rest)
+          ('R' : q : rest) | q == '\'' || q == '"' -> ("R", q : rest)
+          _ -> ("", input)
+   in case body of
+        [] -> (rawPrefix, [])
+        (quote : rest) ->
+          let triple = take 2 rest == [quote, quote]
+              afterOpen = if triple then drop 2 rest else rest
+              (content, remaining) = scanUntilStringEnd quote triple (not (null rawPrefix)) afterOpen
+              opener = if triple then [quote, quote, quote] else [quote]
+           in (rawPrefix ++ opener ++ content, remaining)
+
+scanUntilStringEnd :: Char -> Bool -> Bool -> String -> (String, String)
+scanUntilStringEnd quote triple raw = go []
+  where
+    go acc [] = (reverse acc, [])
+    go acc s@(x : xs)
+      | triple && take 3 s == [quote, quote, quote] = (reverse acc ++ [quote, quote, quote], drop 3 s)
+      | not triple && x == quote = (reverse (x : acc), xs)
+      | not raw && x == '\\' =
+          case xs of
+            [] -> (reverse (x : acc), [])
+            y : ys -> go (y : x : acc) ys
+      | otherwise = go (x : acc) xs
+
+trimHorizontal :: String -> String
+trimHorizontal = dropWhile isHorizontalSpace . trimTrailingSpaces
+
+trimTrailingSpaces :: String -> String
+trimTrailingSpaces = reverse . dropWhile isHorizontalSpace . reverse
+
+splitTrailingHorizontal :: String -> (String, String)
+splitTrailingHorizontal text =
+  let trailing = reverse (takeWhile isHorizontalSpace (reverse text))
+      front = take (length text - length trailing) text
+   in (front, trailing)
+
+isHorizontalSpace :: Char -> Bool
+isHorizontalSpace c = c == ' ' || c == '\t' || (isSpace c && c /= '\n')
+
+isIdentifierStart :: Char -> Bool
+isIdentifierStart c = isAlpha c || c == '_' || c == '$'
+
+isIdentifierChar :: Char -> Bool
+isIdentifierChar c = isAlphaNum c || c == '_' || c == '$'
+=== END FILE ===
+
+=== FILE: src/VariableFormatter.hs ===
+module VariableFormatter (formatVariable) where
+
+import Data.Char (isAlphaNum, isSpace)
+import Data.List (intercalate, isInfixOf)
+import Data.Maybe (isJust)
+
+data Tok
+  = WordTok String
+  | OpTok String
+  | CommaTok
+  | OpenTok Char
+  | CloseTok Char
+  deriving (Eq, Show)
+
+formatVariable :: String -> Maybe String
+formatVariable source = do
+  line <- singleLine (dropTrailingNewlines source)
+  let trimmed = trimHorizontal line
+  if safeVariableLine trimmed
+    then renderVariable trimmed
+    else Nothing
+
+singleLine :: String -> Maybe String
+singleLine text =
+  case break (== '\n') text of
+    (_, _ : _) -> Nothing
+    _ -> Just text
+
+safeVariableLine :: String -> Bool
+safeVariableLine text =
+  not (null text)
+    && last text == ';'
+    && (not (hasStringSyntax text) || isStringInitializedVariable text)
+    && not (hasCommentSyntax text)
+    && not (hasBraceSyntax text)
+    && not ("=>" `isInfixOf` text)
+    && balancedDelimiters text
+
+isStringInitializedVariable :: String -> Bool
+isStringInitializedVariable text =
+  case stripFinalSemicolon text of
+    Just withoutSemi -> isJust (renderStringInitialized withoutSemi)
+    Nothing -> False
+
+renderVariable :: String -> Maybe String
+renderVariable text = do
+  withoutSemi <- stripFinalSemicolon text
+  case renderStringInitialized withoutSemi of
+    Just rendered -> Just rendered
+    Nothing ->
+      case renderKeywordDeclarators withoutSemi of
+        Just rendered -> Just rendered
+        Nothing ->
+          case splitTopLevelEquals withoutSemi of
+            Just (prefix, expr) -> renderInitialized prefix expr
+            Nothing ->
+              if hasTopLevelEquals withoutSemi
+                then Nothing
+                else renderUninitialized withoutSemi
+
+renderStringInitialized :: String -> Maybe String
+renderStringInitialized text = do
+  (prefix, expr) <- splitTopLevelEqualsStringAware text
+  let prefixWords = words prefix
+      exprTrimmed = trimHorizontal expr
+  literal <- completeStringLiteral exprTrimmed
+  if validPrefix prefixWords
+    then Just (unwords prefixWords ++ " = " ++ literal ++ ";")
+    else Nothing
+
+completeStringLiteral :: String -> Maybe String
+completeStringLiteral text = do
+  (literal, rest) <- scanStringComplete text
+  if null (trimHorizontal rest) then Just literal else Nothing
+
+renderKeywordDeclarators :: String -> Maybe String
+renderKeywordDeclarators text = do
+  (keyword, rest0) <- consumeWord (trimHorizontal text)
+  if keyword `elem` ["var", "final", "const"]
+    then do
+      let body = trimHorizontal rest0
+      declarators <- splitTopLevelCommas body
+      rendered <- mapM renderDeclarator declarators
+      Just (keyword ++ " " ++ intercalate ", " rendered ++ ";")
+    else Nothing
+
+renderDeclarator :: String -> Maybe String
+renderDeclarator declarator = do
+  (namePart, expr) <- splitTopLevelEquals declarator
+  let name = trimHorizontal namePart
+      exprTrimmed = trimHorizontal expr
+  if isIdentifierName name && not (null exprTrimmed)
+    then Just (name ++ " = " ++ renderTokens (tokenize exprTrimmed))
+    else Nothing
+
+consumeWord :: String -> Maybe (String, String)
+consumeWord text =
+  let (word, rest) = span (not . isHorizontalSpace) text
+   in if null word then Nothing else Just (word, rest)
+
+splitTopLevelCommas :: String -> Maybe [String]
+splitTopLevelCommas text = go 0 0 [] [] text
+  where
+    go _ _ current pieces [] =
+      let piece = trimHorizontal (reverse current)
+       in if null piece then Nothing else Just (reverse (piece : pieces))
+    go parens brackets current pieces (',' : rest)
+      | parens == 0 && brackets == 0 =
+          let piece = trimHorizontal (reverse current)
+           in if null piece
+                then Nothing
+                else go parens brackets [] (piece : pieces) rest
+    go parens brackets current pieces (c : cs)
+      | c == '(' = go (parens + 1) brackets (c : current) pieces cs
+      | c == ')' = go (parens - 1) brackets (c : current) pieces cs
+      | c == '[' = go parens (brackets + 1) (c : current) pieces cs
+      | c == ']' = go parens (brackets - 1) (c : current) pieces cs
+      | otherwise = go parens brackets (c : current) pieces cs
+
+renderInitialized :: String -> String -> Maybe String
+renderInitialized prefix expr =
+  let prefixWords = words prefix
+      exprTrimmed = trimHorizontal expr
+   in if validPrefix prefixWords && not (null exprTrimmed)
+        then Just (unwords prefixWords ++ " = " ++ renderTokens (tokenize exprTrimmed) ++ ";")
+        else Nothing
+
+renderUninitialized :: String -> Maybe String
+renderUninitialized prefix =
+  let prefixWords = words prefix
+   in if validPrefix prefixWords && not (hasTopLevelComma prefix)
+        then Just (unwords prefixWords ++ ";")
+        else Nothing
+
+stripFinalSemicolon :: String -> Maybe String
+stripFinalSemicolon [] = Nothing
+stripFinalSemicolon text
+  | last text == ';' = Just (init text)
+  | otherwise = Nothing
+
+splitTopLevelEqualsStringAware :: String -> Maybe (String, String)
+splitTopLevelEqualsStringAware text = go 0 0 [] text Nothing
+  where
+    go _ _ _ [] (Just pair) = Just pair
+    go _ _ _ [] Nothing = Nothing
+    go parens brackets acc input found
+      | startsString input = do
+          (literal, rest) <- scanStringComplete input
+          go parens brackets (reverse literal ++ acc) rest found
+    go parens brackets acc ('=' : rest) found
+      | parens == 0 && brackets == 0 =
+          case rest of
+            '=' : _ -> Nothing
+            _ -> case found of
+                   Nothing -> go parens brackets [] rest (Just (reverse acc, rest))
+                   Just _ -> Nothing
+    go parens brackets acc (c : cs) found
+      | c == '(' = go (parens + 1) brackets (c : acc) cs found
+      | c == ')' = go (parens - 1) brackets (c : acc) cs found
+      | c == '[' = go parens (brackets + 1) (c : acc) cs found
+      | c == ']' = go parens (brackets - 1) (c : acc) cs found
+      | otherwise = go parens brackets (c : acc) cs found
+
+splitTopLevelEquals :: String -> Maybe (String, String)
+splitTopLevelEquals text = go 0 0 [] text Nothing
+  where
+    go _ _ _ [] (Just pair) = Just pair
+    go _ _ _ [] Nothing = Nothing
+    go parens brackets acc ('=' : rest) found
+      | parens == 0 && brackets == 0 =
+          case rest of
+            '=' : _ -> Nothing
+            _ -> case found of
+                   Nothing -> go parens brackets [] rest (Just (reverse acc, rest))
+                   Just _ -> Nothing
+    go parens brackets acc (c : cs) found
+      | c == '(' = go (parens + 1) brackets (c : acc) cs found
+      | c == ')' = go (parens - 1) brackets (c : acc) cs found
+      | c == '[' = go parens (brackets + 1) (c : acc) cs found
+      | c == ']' = go parens (brackets - 1) (c : acc) cs found
+      | otherwise = go parens brackets (c : acc) cs found
+
+hasTopLevelEquals :: String -> Bool
+hasTopLevelEquals = go 0 0
+  where
+    go _ _ [] = False
+    go parens brackets ('=' : _) | parens == 0 && brackets == 0 = True
+    go parens brackets (c : cs)
+      | c == '(' = go (parens + 1) brackets cs
+      | c == ')' = go (parens - 1) brackets cs
+      | c == '[' = go parens (brackets + 1) cs
+      | c == ']' = go parens (brackets - 1) cs
+      | otherwise = go parens brackets cs
+
+hasTopLevelComma :: String -> Bool
+hasTopLevelComma = go 0 0
+  where
+    go _ _ [] = False
+    go parens brackets (',' : _) | parens == 0 && brackets == 0 = True
+    go parens brackets (c : cs)
+      | c == '(' = go (parens + 1) brackets cs
+      | c == ')' = go (parens - 1) brackets cs
+      | c == '[' = go parens (brackets + 1) cs
+      | c == ']' = go parens (brackets - 1) cs
+      | otherwise = go parens brackets cs
+
+validPrefix :: [String] -> Bool
+validPrefix [] = False
+validPrefix ["var", name] = isIdentifierName name
+validPrefix ["final", name] = isIdentifierName name
+validPrefix ["const", name] = isIdentifierName name
+validPrefix [typ, name] = isSimpleType typ && isIdentifierName name
+validPrefix ["final", typ, name] = isSimpleType typ && isIdentifierName name
+validPrefix ["const", typ, name] = isSimpleType typ && isIdentifierName name
+validPrefix _ = False
+
+isSimpleType :: String -> Bool
+isSimpleType = all isTypeChar
+
+isTypeChar :: Char -> Bool
+isTypeChar c = isAlphaNum c || c `elem` "_$.<>?"
+
+isIdentifierName :: String -> Bool
+isIdentifierName [] = False
+isIdentifierName (c : cs) = isIdentifierStart c && all isIdentifierChar cs
+
+isIdentifierStart :: Char -> Bool
+isIdentifierStart c = c == '_' || c == '$' || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+
+isIdentifierChar :: Char -> Bool
+isIdentifierChar c = isIdentifierStart c || ('0' <= c && c <= '9')
+
+hasStringSyntax :: String -> Bool
+hasStringSyntax = any (`elem` ['\'', '"'])
+
+hasCommentSyntax :: String -> Bool
+hasCommentSyntax text = "//" `isInfixOf` text || "/*" `isInfixOf` text
+
+hasBraceSyntax :: String -> Bool
+hasBraceSyntax = any (`elem` ['{', '}'])
+
+balancedDelimiters :: String -> Bool
+balancedDelimiters = go []
+  where
+    go [] [] = True
+    go stack [] = null stack
+    go stack (c : cs)
+      | c == '(' = go (c : stack) cs
+      | c == '[' = go (c : stack) cs
+      | c == ')' = close '(' stack cs
+      | c == ']' = close '[' stack cs
+      | otherwise = go stack cs
+    close expected (top : rest) cs | top == expected = go rest cs
+    close _ _ _ = False
+
+tokenize :: String -> [Tok]
+tokenize [] = []
+tokenize input@(c : cs)
+  | isHorizontalSpace c = tokenize (dropWhile isHorizontalSpace cs)
+  | c == ',' = CommaTok : tokenize cs
+  | c == '(' || c == '[' = OpenTok c : tokenize cs
+  | c == ')' || c == ']' = CloseTok c : tokenize cs
+  | Just (op, rest) <- takeOperator input = OpTok op : tokenize rest
+  | otherwise = let (word, rest) = span isWordChar input in WordTok word : tokenize rest
+
+takeOperator :: String -> Maybe (String, String)
+takeOperator input = firstMatch operators
+  where
+    firstMatch [] = Nothing
+    firstMatch (op : ops)
+      | op `prefixOf` input = Just (op, drop (length op) input)
+      | otherwise = firstMatch ops
+
+operators :: [String]
+operators = ["==", "!=", "<=", ">=", "&&", "||", "+", "-", "*", "/", "%", "<", ">"]
+
+prefixOf :: String -> String -> Bool
+prefixOf prefix text = take (length prefix) text == prefix
+
+isWordChar :: Char -> Bool
+isWordChar c =
+  not (isHorizontalSpace c)
+    && c /= ','
+    && c /= '('
+    && c /= ')'
+    && c /= '['
+    && c /= ']'
+    && not (any (`prefixOf` [c]) singleCharOperators)
+
+singleCharOperators :: [String]
+singleCharOperators = ["+", "-", "*", "/", "%", "<", ">", "&", "|"]
+
+renderTokens :: [Tok] -> String
+renderTokens = trimHorizontal . foldl appendTok ""
+
+appendTok :: String -> Tok -> String
+appendTok acc tok =
+  case tok of
+    WordTok word -> appendWord acc word
+    OpTok op -> trimTrailingSpaces acc ++ " " ++ op ++ " "
+    CommaTok -> trimTrailingSpaces acc ++ ", "
+    OpenTok ch -> trimTrailingSpaces acc ++ [ch]
+    CloseTok ch -> trimTrailingSpaces acc ++ [ch]
+
+appendWord :: String -> String -> String
+appendWord acc word
+  | null acc = word
+  | last acc `elem` " ([" = acc ++ word
+  | otherwise = acc ++ " " ++ word
+
+startsString :: String -> Bool
+startsString ('\'' : _) = True
+startsString ('"' : _) = True
+startsString ('r' : '\'' : _) = True
+startsString ('r' : '"' : _) = True
+startsString ('R' : '\'' : _) = True
+startsString ('R' : '"' : _) = True
+startsString _ = False
+
+scanStringComplete :: String -> Maybe (String, String)
+scanStringComplete input =
+  let (rawPrefix, body) =
+        case input of
+          ('r' : q : rest) | q == '\'' || q == '"' -> ("r", q : rest)
+          ('R' : q : rest) | q == '\'' || q == '"' -> ("R", q : rest)
+          _ -> ("", input)
+   in case body of
+        quote : rest | quote == '\'' || quote == '"' -> do
+          let triple = take 2 rest == [quote, quote]
+              afterOpen = if triple then drop 2 rest else rest
+              opener = if triple then [quote, quote, quote] else [quote]
+          (content, remaining) <- scanUntilStringEndComplete quote triple (not (null rawPrefix)) afterOpen
+          Just (rawPrefix ++ opener ++ content, remaining)
+        _ -> Nothing
+
+scanUntilStringEndComplete :: Char -> Bool -> Bool -> String -> Maybe (String, String)
+scanUntilStringEndComplete quote triple raw = go []
+  where
+    go _ [] = Nothing
+    go acc s@(x : xs)
+      | triple && take 3 s == [quote, quote, quote] = Just (reverse acc ++ [quote, quote, quote], drop 3 s)
+      | not triple && x == quote = Just (reverse (x : acc), xs)
+      | not raw && x == '\\' =
+          case xs of
+            [] -> Nothing
+            y : ys -> go (y : x : acc) ys
+      | otherwise = go (x : acc) xs
+
+trimHorizontal :: String -> String
+trimHorizontal = dropWhile isHorizontalSpace . trimTrailingSpaces
+
+trimTrailingSpaces :: String -> String
+trimTrailingSpaces = reverse . dropWhile isHorizontalSpace . reverse
+
+dropTrailingNewlines :: String -> String
+dropTrailingNewlines = reverse . dropWhile (== '\n') . reverse
+
+isHorizontalSpace :: Char -> Bool
+isHorizontalSpace c = c == ' ' || c == '\t' || (isSpace c && c /= '\n')
+=== END FILE ===

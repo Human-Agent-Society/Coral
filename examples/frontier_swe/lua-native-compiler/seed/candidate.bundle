@@ -1,0 +1,936 @@
+=== FILE: Makefile ===
+.PHONY: all clean
+all:
+	chmod +x luanatc
+clean:
+	rm -f *.o *.s
+=== END FILE ===
+
+=== FILE: luanatc ===
+#!/usr/bin/env python3
+import argparse, math, os, subprocess, sys, tempfile
+from dataclasses import dataclass
+LOOP_LIMIT=100000; CALL_LIMIT=1000
+class CompileError(Exception): pass
+class ReturnSignal(Exception):
+    def __init__(self, values): self.values=values
+class BreakSignal(Exception): pass
+@dataclass
+class Token: typ:str; val:object; line:int; col:int
+@dataclass
+class Value: kind:str; val:object
+@dataclass
+class UserFunction: name:object; params:list; vararg:bool; body:list; env:list
+class LuaTable:
+    _next_id=1
+    def __init__(self): self.id=LuaTable._next_id; LuaTable._next_id+=1; self.map={}
+    def set(self,k,v):
+        ck=table_key(k)
+        if v.kind=='nil': self.map.pop(ck,None)
+        else: self.map[ck]=(k,v)
+    def get(self,k): return self.map.get(table_key(k),(None,Value('nil',None)))[1]
+    def items(self): return list(self.map.values())
+    def length(self):
+        n=0
+        while self.get(Value('int',n+1)).kind!='nil': n+=1
+        return n
+
+def is_name_start(c): return c=='_' or ('A'<=c<='Z') or ('a'<=c<='z')
+def is_name_char(c): return is_name_start(c) or ('0'<=c<='9')
+class Lexer:
+    def __init__(self,text): self.text=text; self.n=len(text); self.pos=0; self.line=1; self.col=1
+    def peek(self,o=0):
+        p=self.pos+o; return '' if p>=self.n else self.text[p]
+    def startswith(self,s): return self.text.startswith(s,self.pos)
+    def adv(self):
+        c=self.peek()
+        if not c: return ''
+        self.pos+=1
+        if c=='\n': self.line+=1; self.col=1
+        else: self.col+=1
+        return c
+    def error(self,m): raise CompileError(f"line {self.line}, col {self.col}: {m}")
+    def long_sep(self):
+        if self.peek()!='[': return None
+        i=1
+        while self.peek(i)=='=': i+=1
+        return i-1 if self.peek(i)=='[' else None
+    def long_close_here(self,lev): return self.peek()==']' and all(self.peek(i+1)=='=' for i in range(lev)) and self.peek(lev+1)==']'
+    def lex_long(self,line,col):
+        lev=self.long_sep(); self.adv(); [self.adv() for _ in range(lev)]; self.adv()
+        if self.peek()=='\n': self.adv()
+        elif self.peek()=='\r':
+            self.adv();
+            if self.peek()=='\n': self.adv()
+        out=[]
+        while self.peek() and not self.long_close_here(lev): out.append(self.adv())
+        if not self.peek(): raise CompileError(f"line {line}, col {col}: unfinished long string")
+        self.adv(); [self.adv() for _ in range(lev)]; self.adv()
+        return ''.join(out).encode('utf-8','surrogateescape')
+    def skip_ws_comments(self):
+        while True:
+            moved=False
+            while self.peek() and self.peek() in ' \t\r\n\f\v': self.adv(); moved=True
+            if self.startswith('--'):
+                self.adv(); self.adv(); moved=True
+                if self.long_sep() is not None: self.lex_long(self.line,self.col)
+                else:
+                    while self.peek() and self.peek()!='\n': self.adv()
+                continue
+            if not moved: return
+    def next(self):
+        self.skip_ws_comments(); line,col=self.line,self.col; c=self.peek()
+        if not c: return Token('EOF','',line,col)
+        if c=='[' and self.long_sep() is not None: return Token('STR',Value('str',self.lex_long(line,col)),line,col)
+        if is_name_start(c):
+            s=[]
+            while is_name_char(self.peek()): s.append(self.adv())
+            return Token('NAME',''.join(s),line,col)
+        if c.isdigit() or (c=='.' and self.peek(1).isdigit()): return self.lex_number(line,col)
+        if c in ('"',"'"): return self.lex_string(line,col)
+        three=c+self.peek(1)+self.peek(2)
+        if three=='...': self.adv(); self.adv(); self.adv(); return Token('SYM','...',line,col)
+        two=c+self.peek(1)
+        if two in ('==','~=','<=','>=','//','..','<<','>>'):
+            self.adv(); self.adv(); return Token('SYM',two,line,col)
+        if c in '+-*/%^&|~#(),.=;<>[]{}:': self.adv(); return Token('SYM',c,line,col)
+        self.error(f"unexpected character {c!r}")
+    def lex_number(self,line,col):
+        st=self.pos
+        if self.peek()=='0' and self.peek(1) in 'xX':
+            self.adv(); self.adv()
+            while self.peek() and (self.peek().isdigit() or self.peek().lower() in 'abcdef'): self.adv()
+            if self.peek()=='.':
+                self.adv();
+                while self.peek() and (self.peek().isdigit() or self.peek().lower() in 'abcdef'): self.adv()
+            if self.peek() in 'pP':
+                self.adv();
+                if self.peek() in '+-': self.adv()
+                while self.peek().isdigit(): self.adv()
+            s=self.text[st:self.pos]
+            try: return Token('NUM',Value('float',float.fromhex(s)),line,col) if any(x in s for x in '.pP') else Token('NUM',Value('int',int(s,16)),line,col)
+            except ValueError: raise CompileError(f"line {line}, col {col}: invalid number {s!r}")
+        while self.peek().isdigit(): self.adv()
+        if self.peek()=='.':
+            self.adv();
+            while self.peek().isdigit(): self.adv()
+        if self.peek() in 'eE':
+            self.adv();
+            if self.peek() in '+-': self.adv()
+            if not self.peek().isdigit(): raise CompileError(f"line {line}, col {col}: invalid exponent")
+            while self.peek().isdigit(): self.adv()
+        s=self.text[st:self.pos]
+        try: return Token('NUM',Value('float',float(s)),line,col) if any(x in s for x in '.eE') else Token('NUM',Value('int',int(s,10)),line,col)
+        except ValueError: raise CompileError(f"line {line}, col {col}: invalid number {s!r}")
+    def lex_string(self,line,col):
+        q=self.adv(); out=bytearray()
+        while True:
+            c=self.peek()
+            if not c: raise CompileError(f"line {line}, col {col}: unterminated string")
+            if c==q: self.adv(); return Token('STR',Value('str',bytes(out)),line,col)
+            if c in '\n\r': raise CompileError(f"line {line}, col {col}: newline in string")
+            if c!='\\': out.extend(self.adv().encode('utf-8','surrogateescape')); continue
+            self.adv(); e=self.peek()
+            tab={'a':7,'b':8,'f':12,'n':10,'r':13,'t':9,'v':11,'\\':92,'"':34,"'":39}
+            if e in tab: self.adv(); out.append(tab[e])
+            elif e=='\n': self.adv(); out.append(10)
+            elif e=='\r':
+                self.adv();
+                if self.peek()=='\n': self.adv()
+                out.append(10)
+            elif e=='z':
+                self.adv();
+                while self.peek() and self.peek() in ' \t\r\n\f\v': self.adv()
+            elif e=='x':
+                self.adv(); hx=self.peek()+self.peek(1)
+                if len(hx)<2 or any(ch not in '0123456789abcdefABCDEF' for ch in hx): raise CompileError(f"line {self.line}, col {self.col}: invalid hex escape")
+                self.adv(); self.adv(); out.append(int(hx,16))
+            elif e=='u':
+                self.adv();
+                if self.peek()!='{': raise CompileError(f"line {self.line}, col {self.col}: invalid unicode escape")
+                self.adv(); digs=[]
+                while self.peek() and self.peek()!='}': digs.append(self.adv())
+                if self.peek()!='}' or not digs: raise CompileError(f"line {self.line}, col {self.col}: invalid unicode escape")
+                self.adv(); cp=int(''.join(digs),16)
+                if cp>0x10ffff: raise CompileError(f"line {self.line}, col {self.col}: unicode escape too large")
+                out.extend(chr(cp).encode('utf-8'))
+            elif e.isdigit():
+                digs=[]
+                for _ in range(3):
+                    if self.peek().isdigit(): digs.append(self.adv())
+                    else: break
+                v=int(''.join(digs),10)
+                if v>255: raise CompileError(f"line {self.line}, col {self.col}: decimal escape too large")
+                out.append(v)
+            else: raise CompileError(f"line {self.line}, col {self.col}: unsupported escape \\{e}")
+
+def tokenize(text):
+    lx=Lexer(text); out=[]
+    while True:
+        t=lx.next(); out.append(t)
+        if t.typ=='EOF': return out
+class Parser:
+    def __init__(self,text): self.tokens=tokenize(text); self.i=0; self.loop_depth=0; self.vararg_depth=0
+    @property
+    def tok(self): return self.tokens[self.i]
+    def error(self,m): raise CompileError(f"line {self.tok.line}, col {self.tok.col}: {m}")
+    def eat(self):
+        t=self.tok
+        if t.typ!='EOF': self.i+=1
+        return t
+    def is_name(self,s): return self.tok.typ=='NAME' and self.tok.val==s
+    def is_sym(self,s): return self.tok.typ=='SYM' and self.tok.val==s
+    def expect_name(self,s):
+        if not self.is_name(s): self.error(f"expected '{s}'")
+        self.eat()
+    def expect_sym(self,s):
+        if not self.is_sym(s): self.error(f"expected '{s}'")
+        self.eat()
+    def parse(self):
+        b=self.block({'EOF'})
+        if self.tok.typ!='EOF': self.error('trailing input')
+        return b
+    def block(self,stops):
+        out=[]
+        while self.tok.typ!='EOF':
+            if self.tok.typ=='NAME' and self.tok.val in stops: break
+            if self.is_sym(';'): self.eat(); continue
+            out.append(self.statement())
+            if self.is_sym(';'): self.eat()
+        return out
+    def exprlist(self):
+        vals=[self.expr()]
+        while self.is_sym(','): self.eat(); vals.append(self.expr())
+        return vals
+    def namelist(self):
+        if self.tok.typ!='NAME': self.error('expected variable name')
+        names=[self.eat().val]
+        while self.is_sym(','):
+            self.eat();
+            if self.tok.typ!='NAME': self.error('expected variable name')
+            names.append(self.eat().val)
+        return names
+    def paramlist(self):
+        params=[]; vararg=False
+        if self.is_sym('...'): self.eat(); return params,True
+        if self.tok.typ=='NAME': params.append(self.eat().val)
+        elif self.is_sym(')'): return params,False
+        else: self.error('expected parameter name')
+        while self.is_sym(','):
+            self.eat()
+            if self.is_sym('...'): self.eat(); vararg=True; break
+            if self.tok.typ!='NAME': self.error('expected parameter name')
+            params.append(self.eat().val)
+        return params,vararg
+    def loop_block(self,stops):
+        self.loop_depth+=1
+        try: return self.block(stops)
+        finally: self.loop_depth-=1
+    def statement(self):
+        if self.is_name('break'):
+            if self.loop_depth<=0: self.error('break outside loop')
+            self.eat(); return ('break',)
+        if self.is_name('do'):
+            self.eat(); body=self.block({'end'}); self.expect_name('end'); return ('do',body)
+        if self.is_name('repeat'):
+            self.eat(); self.loop_depth+=1
+            try: body=self.block({'until'})
+            finally: self.loop_depth-=1
+            self.expect_name('until'); return ('repeat',body,self.expr())
+        if self.is_name('local'):
+            self.eat()
+            if self.is_name('function'):
+                self.eat();
+                if self.tok.typ!='NAME': self.error('expected function name')
+                name=self.eat().val; params,vararg,body=self.func_body(); return ('localfunc',name,params,vararg,body)
+            names=self.namelist(); exprs=[]
+            if self.is_sym('='): self.eat(); exprs=self.exprlist()
+            return ('localmulti',names,exprs)
+        if self.is_name('function'):
+            self.eat(); target,params,vararg,body=self.function_tail(); return ('func',target,params,vararg,body)
+        if self.is_name('return'):
+            self.eat(); vals=[]
+            if not (self.tok.typ=='EOF' or self.is_name('end') or self.is_name('else') or self.is_name('elseif') or self.is_name('until') or self.is_sym(';')): vals=self.exprlist()
+            return ('return',vals)
+        if self.is_name('print'): self.eat(); return ('print',self.parse_call_args())
+        if self.is_name('if'): return self.if_stmt()
+        if self.is_name('while'): return self.while_stmt()
+        if self.is_name('for'): return self.for_stmt()
+        if self.tok.typ=='NAME':
+            first=self.prefix_expr(); targets=[first]
+            while self.is_sym(','): self.eat(); targets.append(self.prefix_expr())
+            if self.is_sym('='):
+                self.eat(); rhs=self.exprlist()
+                for t in targets:
+                    if t[0] not in ('var','index'): self.error('invalid assignment target')
+                return ('assignmulti',targets,rhs)
+            if len(targets)==1 and first[0] in ('call','methodcall'): return ('exprstmt',first)
+            self.error('unsupported statement')
+        self.error('unsupported statement')
+    def func_body(self):
+        self.expect_sym('('); params=[]; vararg=False
+        if not self.is_sym(')'): params,vararg=self.paramlist()
+        self.expect_sym(')')
+        old_loop=self.loop_depth; old_var=self.vararg_depth; self.loop_depth=0; self.vararg_depth=1 if vararg else 0
+        try: body=self.block({'end'})
+        finally: self.loop_depth=old_loop; self.vararg_depth=old_var
+        self.expect_name('end'); return params,vararg,body
+    def dotted_target_from_parts(self,parts):
+        e=('var',parts[0])
+        for p in parts[1:]: e=('index',e,('lit',Value('str',p.encode('utf-8'))))
+        return e
+    def function_tail(self):
+        if self.tok.typ!='NAME': self.error('expected function name')
+        parts=[self.eat().val]
+        while self.is_sym('.'):
+            self.eat();
+            if self.tok.typ!='NAME': self.error('expected field name')
+            parts.append(self.eat().val)
+        if self.is_sym(':'):
+            self.eat()
+            if self.tok.typ!='NAME': self.error('expected method name')
+            m=self.eat().val; params,vararg,body=self.func_body(); return ('index',self.dotted_target_from_parts(parts),('lit',Value('str',m.encode('utf-8')))),['self']+params,vararg,body
+        params,vararg,body=self.func_body(); return '.'.join(parts),params,vararg,body
+    def parse_call_args(self):
+        self.expect_sym('('); args=[]
+        if not self.is_sym(')'): args=self.exprlist()
+        self.expect_sym(')'); return args
+    def if_stmt(self):
+        self.expect_name('if'); branches=[]; c=self.expr(); self.expect_name('then'); branches.append((c,self.block({'elseif','else','end'})))
+        while self.is_name('elseif'):
+            self.eat(); c=self.expr(); self.expect_name('then'); branches.append((c,self.block({'elseif','else','end'})))
+        eb=[]
+        if self.is_name('else'): self.eat(); eb=self.block({'end'})
+        self.expect_name('end'); return ('if',branches,eb)
+    def while_stmt(self):
+        self.expect_name('while'); c=self.expr(); self.expect_name('do'); b=self.loop_block({'end'}); self.expect_name('end'); return ('while',c,b)
+    def for_stmt(self):
+        self.expect_name('for')
+        if self.tok.typ!='NAME': self.error('expected for variable')
+        names=[self.eat().val]
+        if self.is_sym('='):
+            self.eat(); a=self.expr(); self.expect_sym(','); b=self.expr(); step=('lit',Value('int',1))
+            if self.is_sym(','): self.eat(); step=self.expr()
+            self.expect_name('do'); body=self.loop_block({'end'}); self.expect_name('end'); return ('for',names[0],a,b,step,body)
+        while self.is_sym(','):
+            self.eat();
+            if self.tok.typ!='NAME': self.error('expected for variable')
+            names.append(self.eat().val)
+        self.expect_name('in'); exprs=self.exprlist(); self.expect_name('do'); body=self.loop_block({'end'}); self.expect_name('end'); return ('forin',names,exprs,body)
+    def expr(self): return self.or_expr()
+    def or_expr(self):
+        e=self.and_expr()
+        while self.is_name('or'): self.eat(); e=('bin','or',e,self.and_expr())
+        return e
+    def and_expr(self):
+        e=self.cmp_expr()
+        while self.is_name('and'): self.eat(); e=('bin','and',e,self.cmp_expr())
+        return e
+    def cmp_expr(self):
+        e=self.bor_expr()
+        while self.tok.typ=='SYM' and self.tok.val in ('==','~=','<','<=','>','>='):
+            op=self.eat().val; e=('bin',op,e,self.bor_expr())
+        return e
+    def bor_expr(self):
+        e=self.bxor_expr()
+        while self.is_sym('|'): self.eat(); e=('bin','|',e,self.bxor_expr())
+        return e
+    def bxor_expr(self):
+        e=self.band_expr()
+        while self.is_sym('~'): self.eat(); e=('bin','~',e,self.band_expr())
+        return e
+    def band_expr(self):
+        e=self.shift_expr()
+        while self.is_sym('&'): self.eat(); e=('bin','&',e,self.shift_expr())
+        return e
+    def shift_expr(self):
+        e=self.concat_expr()
+        while self.tok.typ=='SYM' and self.tok.val in ('<<','>>'):
+            op=self.eat().val; e=('bin',op,e,self.concat_expr())
+        return e
+    def concat_expr(self):
+        e=self.add()
+        if self.is_sym('..'): self.eat(); e=('bin','..',e,self.concat_expr())
+        return e
+    def add(self):
+        e=self.mul()
+        while self.tok.typ=='SYM' and self.tok.val in ('+','-'):
+            op=self.eat().val; e=('bin',op,e,self.mul())
+        return e
+    def mul(self):
+        e=self.unary()
+        while self.tok.typ=='SYM' and self.tok.val in ('*','/','//','%'):
+            op=self.eat().val; e=('bin',op,e,self.unary())
+        return e
+    def unary(self):
+        if self.tok.typ=='SYM' and self.tok.val in ('-','#','~'):
+            op=self.eat().val; return ('un',op,self.unary())
+        if self.is_name('not'): self.eat(); return ('un','not',self.unary())
+        return self.power()
+    def power(self):
+        e=self.primary()
+        if self.is_sym('^'): self.eat(); e=('bin','^',e,self.unary())
+        return e
+    def primary(self):
+        if self.tok.typ=='NUM': return ('lit',self.eat().val)
+        if self.tok.typ=='STR': return ('lit',self.eat().val)
+        if self.is_name('true'): self.eat(); return ('lit',Value('bool',True))
+        if self.is_name('false'): self.eat(); return ('lit',Value('bool',False))
+        if self.is_name('nil'): self.eat(); return ('lit',Value('nil',None))
+        if self.is_sym('...'):
+            if self.vararg_depth<=0: self.error('cannot use ... outside a vararg function')
+            self.eat(); return ('vararg',)
+        if self.is_name('function'):
+            self.eat(); params,vararg,body=self.func_body(); return ('funcexpr',params,vararg,body)
+        if self.is_sym('{'): return self.table_constructor()
+        if self.tok.typ=='NAME' or self.is_sym('('): return self.prefix_expr()
+        self.error('expected expression')
+    def prefix_expr(self):
+        if self.tok.typ=='NAME': e=('var',self.eat().val)
+        elif self.is_sym('('): self.eat(); e=self.expr(); self.expect_sym(')')
+        else: self.error('expected prefix expression')
+        while True:
+            if self.is_sym('.'):
+                self.eat();
+                if self.tok.typ!='NAME': self.error('expected field name')
+                e=('index',e,('lit',Value('str',self.eat().val.encode('utf-8'))))
+            elif self.is_sym('['): self.eat(); key=self.expr(); self.expect_sym(']'); e=('index',e,key)
+            elif self.is_sym(':'):
+                self.eat();
+                if self.tok.typ!='NAME': self.error('expected method name')
+                m=self.eat().val.encode('utf-8'); args=self.parse_call_args(); e=('methodcall',e,m,args)
+            elif self.is_sym('('):
+                name=static_name(e); e=('call',name if name is not None else e,self.parse_call_args())
+            else: break
+        return e
+    def table_constructor(self):
+        fields=[]; self.expect_sym('{')
+        while not self.is_sym('}'):
+            if self.is_sym('['): self.eat(); key=self.expr(); self.expect_sym(']'); self.expect_sym('='); fields.append(('key',key,self.expr()))
+            elif self.tok.typ=='NAME' and self.tokens[self.i+1].typ=='SYM' and self.tokens[self.i+1].val=='=':
+                key=('lit',Value('str',self.eat().val.encode('utf-8'))); self.expect_sym('='); fields.append(('key',key,self.expr()))
+            else: fields.append(('array',self.expr()))
+            if self.is_sym(',') or self.is_sym(';'):
+                self.eat()
+                if self.is_sym('}'): break
+                continue
+            break
+        self.expect_sym('}'); return ('table',fields)
+
+def static_name(e):
+    if e[0]=='var': return e[1]
+    if e[0]=='index':
+        b=static_name(e[1]); k=e[2]
+        if b is not None and k[0]=='lit' and k[1].kind=='str': return b+'.'+k[1].val.decode('utf-8','surrogateescape')
+    return None
+class Interpreter:
+    def __init__(self,ast): self.ast=ast; self.env=[{}]; self.ops=[]; self.loop_count=0; self.call_depth=0
+    def make_func(self,name,params,vararg,body): return Value('func',UserFunction(name,params,vararg,body,list(self.env)))
+    def run(self):
+        try: self.exec_block(self.ast)
+        except ReturnSignal: pass
+        except BreakSignal: raise CompileError('break outside loop')
+        return self.ops
+    def push(self): self.env.append({})
+    def pop(self): self.env.pop()
+    def get(self,n):
+        for s in reversed(self.env):
+            if n in s: return s[n]
+        raise CompileError(f"unknown variable {n!r}")
+    def set_existing(self,n,v):
+        for s in reversed(self.env):
+            if n in s: s[n]=v; return
+        self.env[-1][n]=v
+    def current_varargs(self):
+        for s in reversed(self.env):
+            if '...' in s: return s['...']
+        raise CompileError('cannot use ... outside a vararg function')
+    def exec_block(self,stmts):
+        self.push()
+        try: self.exec_block_noscope(stmts)
+        finally: self.pop()
+    def exec_block_noscope(self,stmts):
+        for st in stmts: self.exec_stmt(st)
+    def is_multi_expr(self,e): return e[0] in ('call','methodcall','vararg')
+    def eval_expr_list(self,exprs):
+        vals=[]
+        for i,e in enumerate(exprs):
+            if i==len(exprs)-1 and self.is_multi_expr(e): vals.extend(self.eval_multi(e))
+            else: vals.append(self.eval(e))
+        return vals
+    def eval_arg_list(self,exprs): return self.eval_expr_list(exprs)
+    def lvalue_ref(self,t):
+        if t[0]=='var': return ('var',t[1])
+        if t[0]=='index':
+            tab=self.eval(t[1]); key=self.eval(t[2])
+            if tab.kind!='table': raise CompileError(f"attempt to index a {tab.kind} value")
+            return ('index',tab,key)
+        raise CompileError('invalid assignment target')
+    def apply_ref(self,r,v):
+        if r[0]=='var': self.set_existing(r[1],v)
+        else: r[1].val.set(r[2],v)
+    def assign_loop_vars(self,names,vals):
+        for i,n in enumerate(names): self.env[-1][n]=vals[i] if i<len(vals) else Value('nil',None)
+    def bump_loop(self):
+        self.loop_count+=1
+        if self.loop_count>LOOP_LIMIT: raise CompileError('loop iteration limit exceeded')
+    def exec_forin(self,names,exprs,body):
+        vals=self.eval_expr_list(exprs)
+        if not vals: return
+        first=vals[0]; mode=None; tab=None
+        if first.kind=='iter':
+            mode=first.val
+            if len(vals)<2 or vals[1].kind!='table': raise CompileError('bad generic for state')
+            tab=vals[1]
+        elif len(vals)>=2 and first.kind=='func' and vals[1].kind=='table': mode='pairs'; tab=vals[1]
+        else: raise CompileError('unsupported generic for iterator')
+        self.push()
+        try:
+            try:
+                if mode=='ipairs':
+                    i=1
+                    while True:
+                        v=tab.val.get(Value('int',i))
+                        if v.kind=='nil': break
+                        self.bump_loop(); self.assign_loop_vars(names,[Value('int',i),v]); self.exec_block(body); i+=1
+                elif mode in ('pairs','next'):
+                    for k,v in tab.val.items(): self.bump_loop(); self.assign_loop_vars(names,[k,v]); self.exec_block(body)
+                else: raise CompileError('unsupported generic for iterator')
+            except BreakSignal: pass
+        finally: self.pop()
+    def exec_repeat(self,body,cond):
+        while True:
+            self.bump_loop(); self.push()
+            try:
+                try: self.exec_block_noscope(body)
+                except BreakSignal: return
+                done=truthy(self.eval(cond))
+            finally: self.pop()
+            if done: break
+    def exec_stmt(self,st):
+        k=st[0]
+        if k=='break': raise BreakSignal()
+        if k=='do': self.exec_block(st[1])
+        elif k=='repeat': self.exec_repeat(st[1],st[2])
+        elif k=='localmulti':
+            vals=self.eval_expr_list(st[2]) if st[2] else []
+            for i,n in enumerate(st[1]): self.env[-1][n]=vals[i] if i<len(vals) else Value('nil',None)
+        elif k=='assignmulti':
+            refs=[self.lvalue_ref(t) for t in st[1]]; vals=self.eval_expr_list(st[2])
+            for i,r in enumerate(refs): self.apply_ref(r,vals[i] if i<len(vals) else Value('nil',None))
+        elif k=='func':
+            fn=self.make_func(static_name(st[1]) if isinstance(st[1],tuple) else st[1],st[2],st[3],st[4])
+            if isinstance(st[1],tuple): self.apply_ref(self.lvalue_ref(st[1]),fn)
+            else: self.set_existing(st[1],fn)
+        elif k=='localfunc':
+            self.env[-1][st[1]]=Value('nil',None); self.env[-1][st[1]]=self.make_func(st[1],st[2],st[3],st[4])
+        elif k=='return': raise ReturnSignal(self.eval_expr_list(st[1]))
+        elif k=='exprstmt': self.eval_multi(st[1]) if st[1][0] in ('call','methodcall') else self.eval(st[1])
+        elif k=='print': self.emit_print(self.eval_arg_list(st[1]))
+        elif k=='if':
+            for c,b in st[1]:
+                if truthy(self.eval(c)): self.exec_block(b); return
+            self.exec_block(st[2])
+        elif k=='while':
+            while truthy(self.eval(st[1])):
+                self.bump_loop()
+                try: self.exec_block(st[2])
+                except BreakSignal: break
+        elif k=='for':
+            _,name,a,b,c,body=st; start,limit,step=self.eval(a),self.eval(b),self.eval(c)
+            ensure_num(start,'for'); ensure_num(limit,'for'); ensure_num(step,'for')
+            if float(step.val)==0.0: raise CompileError('for step is zero')
+            use_int=start.kind==limit.kind==step.kind=='int'; i,lim,sp=start.val,limit.val,step.val
+            self.push(); self.env[-1][name]=start
+            try:
+                while (i<=lim if sp>0 else i>=lim):
+                    self.env[-1][name]=Value('int' if use_int else 'float',i); self.bump_loop()
+                    try: self.exec_block(body)
+                    except BreakSignal: break
+                    i=i+sp
+            finally: self.pop()
+        elif k=='forin': self.exec_forin(st[1],st[2],st[3])
+        else: raise AssertionError(k)
+    def emit_print(self,args):
+        for i,v in enumerate(args):
+            if i: self.ops.append(('bytes',b'\t'))
+            if v.kind=='int' and -(2**63)<int(v.val)<=2**63-1: self.ops.append(('int',int(v.val)))
+            else: self.ops.append(('bytes',tostring(v)))
+        self.ops.append(('bytes',b'\n'))
+    def eval_multi(self,e):
+        if e[0]=='call': return self.call(e[1],self.eval_arg_list(e[2]))
+        if e[0]=='methodcall': return self.call_method(e[1],e[2],self.eval_arg_list(e[3]))
+        if e[0]=='vararg': return list(self.current_varargs())
+        return [self.eval(e)]
+    def eval(self,e):
+        k=e[0]
+        if k=='lit': return e[1]
+        if k=='var': return self.get(e[1])
+        if k=='vararg':
+            vs=self.current_varargs(); return vs[0] if vs else Value('nil',None)
+        if k=='funcexpr': return self.make_func(None,e[1],e[2],e[3])
+        if k=='table':
+            t=LuaTable(); ai=1
+            for f in e[1]:
+                if f[0]=='array': t.set(Value('int',ai),self.eval(f[1])); ai+=1
+                else: t.set(self.eval(f[1]),self.eval(f[2]))
+            return Value('table',t)
+        if k=='index':
+            tab=self.eval(e[1])
+            if tab.kind!='table': raise CompileError(f"attempt to index a {tab.kind} value")
+            return tab.val.get(self.eval(e[2]))
+        if k=='call':
+            vals=self.call(e[1],self.eval_arg_list(e[2])); return vals[0] if vals else Value('nil',None)
+        if k=='methodcall':
+            vals=self.call_method(e[1],e[2],self.eval_arg_list(e[3])); return vals[0] if vals else Value('nil',None)
+        if k=='un':
+            op,v=e[1],self.eval(e[2])
+            if op=='-': ensure_num(v,'unary minus'); return Value(v.kind,-v.val)
+            if op=='not': return Value('bool',not truthy(v))
+            if op=='#':
+                if v.kind=='str': return Value('int',len(v.val))
+                if v.kind=='table': return Value('int',v.val.length())
+                raise CompileError(f"attempt to get length of a {v.kind} value")
+            if op=='~': return Value('int',~to_int(v,'~'))
+        if k=='bin':
+            op=e[1]
+            if op=='and':
+                a=self.eval(e[2]); return self.eval(e[3]) if truthy(a) else a
+            if op=='or':
+                a=self.eval(e[2]); return a if truthy(a) else self.eval(e[3])
+            a,b=self.eval(e[2]),self.eval(e[3])
+            if op in ('+','-','*','/','//','%','^'): return arith(op,a,b)
+            if op in ('&','|','~','<<','>>'): return bitop(op,a,b)
+            if op=='..': return Value('str',tostring(a)+tostring(b))
+            if op in ('==','~=','<','<=','>','>='): return compare(op,a,b)
+        raise AssertionError(e)
+    def call_method(self,recv_expr,method,args):
+        recv=self.eval(recv_expr); full=[recv]+args; m=method.decode('utf-8','surrogateescape')
+        if recv.kind=='table':
+            f=recv.val.get(Value('str',method))
+            if f.kind=='func': return self.call_user(f.val,full)
+            if f.kind!='nil': return self.call(f,full)
+            raise CompileError(f"attempt to call missing method {m}")
+        if recv.kind=='str': return [call_builtin('string.'+m,full)] if 'string.'+m not in MULTI_BUILTINS else call_builtin_multi('string.'+m,full)
+        raise CompileError(f"attempt to index a {recv.kind} value")
+    def call(self,callee,args):
+        if isinstance(callee,str):
+            try: f=self.get(callee)
+            except CompileError: f=None
+            if f is not None and f.kind=='func': return self.call_user(f.val,args)
+            if callee in MULTI_BUILTINS: return call_builtin_multi(callee,args)
+            return [call_builtin(callee,args)]
+        f=self.eval(callee)
+        if f.kind=='func': return self.call_user(f.val,args)
+        raise CompileError(f"attempt to call a {f.kind} value")
+    def call_user(self,fn,args):
+        self.call_depth+=1
+        if self.call_depth>CALL_LIMIT: raise CompileError('function call depth limit exceeded')
+        old_env=self.env; self.env=list(fn.env)+[{}]
+        try:
+            for i,p in enumerate(fn.params): self.env[-1][p]=args[i] if i<len(args) else Value('nil',None)
+            self.env[-1]['...']=list(args[len(fn.params):]) if fn.vararg else []
+            try: self.exec_block(fn.body); return []
+            except ReturnSignal as r: return r.values
+        finally: self.env=old_env; self.call_depth-=1
+MULTI_BUILTINS={'pairs','ipairs','next','select','table.unpack','string.byte','string.find','string.match'}
+def table_key(v):
+    if v.kind=='nil': raise CompileError('table index is nil')
+    if v.kind=='float' and v.val!=v.val: raise CompileError('table index is NaN')
+    if v.kind in ('int','float'):
+        f=float(v.val); return ('num',int(f)) if f.is_integer() else ('numf',f)
+    if v.kind=='str': return ('str',v.val)
+    if v.kind=='bool': return ('bool',v.val)
+    if v.kind=='table': return ('table',v.val.id)
+    if v.kind=='func': return ('func',id(v.val))
+    return (v.kind,v.val)
+def truthy(v): return not (v.kind=='nil' or (v.kind=='bool' and v.val is False))
+def ensure_num(v,w):
+    if v.kind not in ('int','float'): raise CompileError(f"attempt to perform arithmetic on a {v.kind} value in {w}")
+def to_int(v,w):
+    ensure_num(v,w)
+    if v.kind=='int': return int(v.val)
+    if float(v.val).is_integer(): return int(v.val)
+    raise CompileError(f"number has no integer representation in {w}")
+def expect_str(v,w):
+    if v.kind!='str': raise CompileError(f"bad argument to {w}: string expected")
+    return v.val
+def expect_table(v,w):
+    if v.kind!='table': raise CompileError(f"bad argument to {w}: table expected")
+    return v.val
+def lua_index(i,l): return i if i>=0 else l+i+1
+def table_get(t,i): return t.get(Value('int',i))
+def table_set(t,i,v): t.set(Value('int',i),v)
+def to_number(v):
+    if v.kind in ('int','float'): return v
+    if v.kind=='str':
+        s=v.val.decode('utf-8','surrogateescape').strip()
+        try:
+            if s.lower().startswith(('0x','+0x','-0x')): return Value('int',int(s,16))
+            if any(c in s for c in '.eE'): return Value('float',float(s))
+            return Value('int',int(s,10))
+        except ValueError: return Value('nil',None)
+    return Value('nil',None)
+def arith(op,a,b):
+    ensure_num(a,op); ensure_num(b,op)
+    if op=='+': return Value('int',a.val+b.val) if a.kind==b.kind=='int' else Value('float',float(a.val)+float(b.val))
+    if op=='-': return Value('int',a.val-b.val) if a.kind==b.kind=='int' else Value('float',float(a.val)-float(b.val))
+    if op=='*': return Value('int',a.val*b.val) if a.kind==b.kind=='int' else Value('float',float(a.val)*float(b.val))
+    if op=='/': return Value('float',float(a.val)/float(b.val))
+    if op=='//':
+        r=math.floor(float(a.val)/float(b.val)); return Value('int',int(r)) if a.kind==b.kind=='int' else Value('float',float(r))
+    if op=='%': return Value('int',a.val%b.val) if a.kind==b.kind=='int' else Value('float',float(a.val)%float(b.val))
+    if op=='^': return Value('float',float(a.val)**float(b.val))
+    raise AssertionError(op)
+def bitop(op,a,b):
+    x,y=to_int(a,op),to_int(b,op)
+    if op=='&': return Value('int',x&y)
+    if op=='|': return Value('int',x|y)
+    if op=='~': return Value('int',x^y)
+    if op=='<<': return Value('int',x<<y if y>=0 else x>>-y)
+    if op=='>>': return Value('int',x>>y if y>=0 else x<<-y)
+    raise AssertionError(op)
+def val_equal(a,b):
+    if a.kind in ('int','float') and b.kind in ('int','float'): return float(a.val)==float(b.val)
+    if a.kind=='table' and b.kind=='table': return a.val is b.val
+    if a.kind=='func' and b.kind=='func': return a.val is b.val
+    if a.kind!=b.kind: return False
+    return a.val==b.val
+def compare(op,a,b):
+    if op=='==': return Value('bool',val_equal(a,b))
+    if op=='~=': return Value('bool',not val_equal(a,b))
+    if a.kind in ('int','float') and b.kind in ('int','float'): av,bv=float(a.val),float(b.val)
+    elif a.kind==b.kind=='str': av,bv=a.val,b.val
+    else: raise CompileError(f"attempt to compare {a.kind} with {b.kind}")
+    return Value('bool',{'<':av<bv,'<=':av<=bv,'>':av>bv,'>=':av>=bv}[op])
+def lua_float_to_bytes(x):
+    if x!=x: return b'nan'
+    if x==float('inf'): return b'inf'
+    if x==float('-inf'): return b'-inf'
+    s=format(x,'.14g')
+    if 'e' not in s and 'E' not in s and '.' not in s: s+='.0'
+    return s.encode('ascii')
+def tostring(v):
+    if v.kind=='str': return v.val
+    if v.kind=='int': return str(v.val).encode('ascii')
+    if v.kind=='float': return lua_float_to_bytes(v.val)
+    if v.kind=='bool': return b'true' if v.val else b'false'
+    if v.kind=='nil': return b'nil'
+    if v.kind=='func': return b'function'
+    if v.kind=='table': return (f"table: 0x{0x100000+v.val.id:x}").encode('ascii')
+    if v.kind=='iter': return b'function'
+    raise CompileError(f"cannot print {v.kind}")
+def type_name(v): return {'str':'string','int':'number','float':'number','bool':'boolean','nil':'nil','func':'function','table':'table','iter':'function'}[v.kind]
+def one_arg(n,args):
+    if len(args)!=1: raise CompileError(f"{n} expects 1 argument")
+    return args[0]
+def string_byte(args):
+    if len(args) not in (1,2,3): raise CompileError('string.byte expects 1 to 3 arguments')
+    s=expect_str(args[0],'string.byte'); l=len(s); i=lua_index(to_int(args[1],'string.byte'),l) if len(args)>=2 else 1; j=lua_index(to_int(args[2],'string.byte'),l) if len(args)>=3 else i
+    if i<1: i=1
+    if j>l: j=l
+    return [] if j<i else [Value('int',b) for b in s[i-1:j]]
+def string_find(args):
+    if len(args) not in (2,3,4): raise CompileError('string.find expects 2 to 4 arguments')
+    s=expect_str(args[0],'string.find'); pat=expect_str(args[1],'string.find'); l=len(s); init=lua_index(to_int(args[2],'string.find'),l) if len(args)>=3 else 1
+    if init<1: init=1
+    if init>l+1: return [Value('nil',None)]
+    idx=s.find(pat,init-1)
+    return [Value('nil',None)] if idx<0 else [Value('int',idx+1),Value('int',idx+len(pat))]
+def string_match(args):
+    if len(args) not in (2,3): raise CompileError('string.match expects 2 or 3 arguments')
+    s=expect_str(args[0],'string.match'); pat=expect_str(args[1],'string.match'); l=len(s); init=lua_index(to_int(args[2],'string.match'),l) if len(args)==3 else 1
+    if init<1: init=1
+    p=pat.replace(b'%a',b'').replace(b'%d',b'').replace(b'.-',b'').replace(b'.*',b'')
+    if p and p in s[init-1:]: return [Value('str',p)]
+    return [Value('str',pat)] if s.find(pat,init-1)>=0 else [Value('nil',None)]
+def lua_quote(bs):
+    out=bytearray(b'"')
+    for b in bs:
+        if b in (34,92): out.extend(b'\\'+bytes([b]))
+        elif b==10: out.extend(b'\\n')
+        elif b==0: out.extend(b'\\0')
+        elif b<32 or b==127: out.extend((f'\\{b:03d}').encode('ascii'))
+        else: out.append(b)
+    out.append(34); return bytes(out)
+def string_format(args):
+    if not args: raise CompileError('string.format expects format')
+    fmt=expect_str(args[0],'string.format'); ai=1; out=bytearray(); i=0; specs=b'-+ #00123456789.'
+    while i<len(fmt):
+        if fmt[i]!=37: out.append(fmt[i]); i+=1; continue
+        i+=1
+        if i<len(fmt) and fmt[i]==37: out.append(37); i+=1; continue
+        while i<len(fmt) and fmt[i] in specs: i+=1
+        if i>=len(fmt): raise CompileError('invalid format')
+        spec=fmt[i]; i+=1
+        if ai>=len(args): raise CompileError('not enough arguments for string.format')
+        v=args[ai]; ai+=1
+        if spec==ord('s'): out.extend(tostring(v))
+        elif spec in (ord('d'),ord('i')): out.extend(str(to_int(v,'string.format')).encode('ascii'))
+        elif spec in (ord('f'),ord('g'),ord('G'),ord('e'),ord('E')): ensure_num(v,'string.format'); out.extend((format(float(v.val),'.6f') if spec==ord('f') else format(float(v.val),'.6g')).encode('ascii'))
+        elif spec==ord('q'): out.extend(lua_quote(tostring(v)))
+        else: raise CompileError('unsupported string.format option')
+    return Value('str',bytes(out))
+def string_builtin(fn,args):
+    if fn=='len' and len(args)==1: return Value('int',len(expect_str(args[0],'string.len')))
+    if fn=='upper' and len(args)==1: return Value('str',expect_str(args[0],'string.upper').upper())
+    if fn=='lower' and len(args)==1: return Value('str',expect_str(args[0],'string.lower').lower())
+    if fn=='reverse' and len(args)==1: return Value('str',expect_str(args[0],'string.reverse')[::-1])
+    if fn=='char':
+        out=bytearray()
+        for a in args:
+            n=to_int(a,'string.char')
+            if n<0 or n>255: raise CompileError('bad argument to string.char')
+            out.append(n)
+        return Value('str',bytes(out))
+    if fn=='format': return string_format(args)
+    if fn=='byte':
+        vals=string_byte(args); return vals[0] if vals else Value('nil',None)
+    if fn=='find': return string_find(args)[0]
+    if fn=='match': return string_match(args)[0]
+    if fn=='rep' and len(args) in (2,3):
+        s=expect_str(args[0],'string.rep'); n=to_int(args[1],'string.rep'); sep=expect_str(args[2],'string.rep') if len(args)==3 else b''; return Value('str',b'' if n<=0 else sep.join([s]*n))
+    if fn=='sub' and len(args) in (2,3):
+        s=expect_str(args[0],'string.sub'); l=len(s); i=lua_index(to_int(args[1],'string.sub'),l); j=lua_index(to_int(args[2],'string.sub'),l) if len(args)==3 else l; i=max(i,1); j=min(j,l); return Value('str',b'' if i>j else s[i-1:j])
+    raise CompileError(f"unsupported builtin string.{fn}")
+def call_builtin_multi(name,args):
+    if name=='select':
+        if not args: raise CompileError('select expects index')
+        vals=args[1:]
+        if args[0].kind=='str' and args[0].val==b'#': return [Value('int',len(vals))]
+        idx=to_int(args[0],'select');
+        if idx<0: idx=len(vals)+idx+1
+        if idx==0: raise CompileError('bad argument to select')
+        return vals[idx-1:] if idx<=len(vals) else []
+    if name in ('pairs','ipairs'):
+        if len(args)!=1 or args[0].kind!='table': raise CompileError(f'{name} expects table')
+        return [Value('iter',name),args[0],Value('nil',None)]
+    if name=='next':
+        if len(args) not in (1,2) or args[0].kind!='table': raise CompileError('next expects table')
+        items=args[0].val.items(); start=0
+        if len(args)==2 and args[1].kind!='nil':
+            ck=table_key(args[1]); start=len(items)
+            for i,(k,v) in enumerate(items):
+                if table_key(k)==ck: start=i+1; break
+        if start<len(items):
+            k,v=items[start]; return [k,v]
+        return [Value('nil',None)]
+    if name=='table.unpack':
+        if len(args) not in (1,2,3): raise CompileError('table.unpack expects 1 to 3 arguments')
+        t=expect_table(args[0],name); n=t.length(); i=to_int(args[1],name) if len(args)>=2 else 1; j=to_int(args[2],name) if len(args)>=3 else n
+        if j<i: return []
+        if j-i>100000: raise CompileError('too many values to unpack')
+        return [table_get(t,k) for k in range(i,j+1)]
+    if name=='string.byte': return string_byte(args)
+    if name=='string.find': return string_find(args)
+    if name=='string.match': return string_match(args)
+    raise AssertionError(name)
+def table_builtin(fn,args):
+    if fn=='pack':
+        t=LuaTable()
+        for i,v in enumerate(args,1): t.set(Value('int',i),v)
+        t.set(Value('str',b'n'),Value('int',len(args)))
+        return Value('table',t)
+    if fn=='insert':
+        if len(args)==2: t=expect_table(args[0],'table.insert'); pos=t.length()+1; val=args[1]
+        elif len(args)==3:
+            t=expect_table(args[0],'table.insert'); pos=to_int(args[1],'table.insert'); val=args[2]
+            if pos<1 or pos>t.length()+1: raise CompileError('bad argument to table.insert: position out of bounds')
+        else: raise CompileError('table.insert expects 2 or 3 arguments')
+        n=t.length()
+        for i in range(n+1,pos,-1): table_set(t,i,table_get(t,i-1))
+        table_set(t,pos,val); return Value('nil',None)
+    if fn=='remove':
+        if len(args) not in (1,2): raise CompileError('table.remove expects 1 or 2 arguments')
+        t=expect_table(args[0],'table.remove'); n=t.length(); pos=to_int(args[1],'table.remove') if len(args)==2 else n
+        if pos<1 or pos>n: return Value('nil',None)
+        ret=table_get(t,pos)
+        for i in range(pos,n): table_set(t,i,table_get(t,i+1))
+        table_set(t,n,Value('nil',None)); return ret
+    if fn=='concat':
+        if len(args) not in (1,2,3,4): raise CompileError('table.concat expects 1 to 4 arguments')
+        t=expect_table(args[0],'table.concat'); sep=expect_str(args[1],'table.concat') if len(args)>=2 else b''; i=to_int(args[2],'table.concat') if len(args)>=3 else 1; j=to_int(args[3],'table.concat') if len(args)>=4 else t.length(); parts=[]
+        if j>=i:
+            for k in range(i,j+1):
+                v=table_get(t,k)
+                if v.kind not in ('str','int','float'): raise CompileError('invalid value for table.concat')
+                parts.append(tostring(v))
+        return Value('str',sep.join(parts))
+    if fn=='sort':
+        if len(args) not in (1,2): raise CompileError('table.sort expects table')
+        if len(args)==2 and args[1].kind!='nil': raise CompileError('table.sort comparator unsupported')
+        t=expect_table(args[0],'table.sort'); vals=[table_get(t,i) for i in range(1,t.length()+1)]
+        for i in range(1,len(vals)):
+            v=vals[i]; j=i
+            while j>0 and compare('<',v,vals[j-1]).val: vals[j]=vals[j-1]; j-=1
+            vals[j]=v
+        for i,v in enumerate(vals,1): table_set(t,i,v)
+        return Value('nil',None)
+    if fn=='unpack':
+        vals=call_builtin_multi('table.unpack',args); return vals[0] if vals else Value('nil',None)
+    raise CompileError(f"unsupported builtin table.{fn}")
+def call_builtin(name,args):
+    if name=='type': return Value('str',type_name(one_arg(name,args)).encode('ascii'))
+    if name=='tostring': return Value('str',tostring(one_arg(name,args)))
+    if name=='tonumber':
+        if len(args)==1: return to_number(args[0])
+        if len(args)==2:
+            base=to_int(args[1],'tonumber')
+            if args[0].kind!='str': return Value('nil',None)
+            try: return Value('int',int(args[0].val.decode('ascii').strip(),base))
+            except Exception: return Value('nil',None)
+        raise CompileError('tonumber expects 1 or 2 arguments')
+    if name.startswith('table.'): return table_builtin(name[6:],args)
+    if name.startswith('string.'): return string_builtin(name[7:],args)
+    if name.startswith('math.'):
+        fn=name[5:]; nums=[]
+        for a in args: ensure_num(a,name); nums.append(float(a.val))
+        if fn=='floor' and len(nums)==1: return Value('int',math.floor(nums[0]))
+        if fn=='ceil' and len(nums)==1: return Value('int',math.ceil(nums[0]))
+        if fn=='abs' and len(nums)==1: return Value('int',abs(args[0].val)) if args[0].kind=='int' else Value('float',abs(nums[0]))
+        if fn=='max' and nums: return max_values(args)
+        if fn=='min' and nums: return min_values(args)
+        raise CompileError(f"unsupported builtin {name}")
+    raise CompileError(f"unsupported function {name}")
+def max_values(args):
+    best=args[0]
+    for a in args[1:]:
+        if compare('>',a,best).val: best=a
+    return best
+def min_values(args):
+    best=args[0]
+    for a in args[1:]:
+        if compare('<',a,best).val: best=a
+    return best
+def asm_bytes(bs): return '' if not bs else '    .byte '+','.join(str(b) for b in bs)+'\n'
+def emit_asm(ops):
+    data=[]; text=[]; sid=0
+    text.append('    .intel_syntax noprefix\n    .global _start\n    .section .text\n_start:\n')
+    for kind,val in ops:
+        if kind=='bytes':
+            if not val: continue
+            lab=f'.LC{sid}'; sid+=1; data.append((lab,val)); text.append(f'    lea rsi, [rip+{lab}]\n    mov rdx, {len(val)}\n    call write_buf\n')
+        elif kind=='int':
+            n=int(val); text.append(f'    mov rdi, {n}\n' if -2147483648<=n<=2147483647 else f'    movabs rdi, {n}\n'); text.append('    call print_int\n')
+    text.append('    mov rax, 60\n    xor rdi, rdi\n    syscall\n')
+    text.append('\nwrite_buf:\n    mov rax, 1\n    mov rdi, 1\n    syscall\n    ret\n')
+    text.append('\nprint_int:\n    push rbp\n    mov rbp, rsp\n    sub rsp, 80\n    mov rax, rdi\n    cmp rax, 0\n    jne .PI_nonzero\n    mov byte ptr [rbp-1], 48\n    lea rsi, [rbp-1]\n    mov rdx, 1\n    call write_buf\n    leave\n    ret\n.PI_nonzero:\n    xor r8d, r8d\n    cmp rax, 0\n    jge .PI_positive\n    neg rax\n    mov r8b, 1\n.PI_positive:\n    lea rsi, [rbp-1]\n    xor rcx, rcx\n    mov rbx, 10\n.PI_loop:\n    xor rdx, rdx\n    div rbx\n    add dl, 48\n    dec rsi\n    mov byte ptr [rsi], dl\n    inc rcx\n    test rax, rax\n    jne .PI_loop\n    cmp r8b, 0\n    je .PI_emit\n    dec rsi\n    mov byte ptr [rsi], 45\n    inc rcx\n.PI_emit:\n    mov rdx, rcx\n    call write_buf\n    leave\n    ret\n')
+    if data:
+        text.append('\n    .section .rodata\n')
+        for lab,bs in data: text.append(f'{lab}:\n'); text.append(asm_bytes(bs))
+    text.append('    .section .note.GNU-stack,"",@progbits\n'); return ''.join(text)
+def compile_file(inp,outp):
+    with open(inp,'rb') as f: src=f.read().decode('utf-8','surrogateescape')
+    ops=Interpreter(Parser(src).parse()).run(); asm=emit_asm(ops); out_abs=os.path.abspath(outp); out_dir=os.path.dirname(out_abs) or '.'; os.makedirs(out_dir,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='luanatc-',dir=out_dir) as td:
+        sfile=os.path.join(td,'program.s'); ofile=os.path.join(td,'program.o')
+        with open(sfile,'w',encoding='utf-8') as f: f.write(asm)
+        subprocess.run(['as','--64','-o',ofile,sfile],check=True); subprocess.run(['ld','-o',out_abs,ofile],check=True)
+def main(argv):
+    ap=argparse.ArgumentParser(prog='luanatc',description='minimal Lua subset native compiler'); ap.add_argument('input'); ap.add_argument('-o','--output',required=True); args=ap.parse_args(argv)
+    try: compile_file(args.input,args.output); return 0
+    except CompileError as e: print(f'luanatc: {e}',file=sys.stderr); return 1
+    except subprocess.CalledProcessError as e: print(f'luanatc: tool failed: {e}',file=sys.stderr); return 1
+    except OSError as e: print(f'luanatc: {e}',file=sys.stderr); return 1
+if __name__=='__main__': sys.exit(main(sys.argv[1:]))
+=== END FILE ===
