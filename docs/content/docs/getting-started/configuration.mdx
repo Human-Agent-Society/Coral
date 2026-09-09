@@ -4,7 +4,9 @@ description: Full reference for task.yaml configuration.
 ---
 
 
-Every CORAL task is defined by a `task.yaml` file. This page documents all available options.
+Every CORAL run is configured by a `task.yaml` file. It can either contain the
+legacy inline task/grader definition or reference one local Harbor task. The two
+forms are mutually exclusive.
 
 ## Full example
 
@@ -112,15 +114,63 @@ worked example.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | *required* | Task identifier |
-| `description` | string | *required* | What agents should do — included in CORAL.md |
+| `name` | string | *required for legacy tasks* | Task identifier |
+| `description` | string | *required for legacy tasks* | What agents should do — included in CORAL.md |
 | `tips` | string | `""` | Additional hints shown to agents |
+| `source` | string | `""` | Local Harbor task directory, resolved relative to `task.yaml`. |
+| `reward.primary` | string | *required with `source`* | Harbor reward key used as CORAL's aggregate score. |
+| `reward.direction` | string | `"maximize"` | CORAL ranking direction; raw Harbor rewards are not negated. |
+
+### Local Harbor task compatibility
+
+The initial Harbor adapter is an explicit, narrow compatibility profile:
+
+```yaml
+task:
+  source: ./task
+  reward:
+    primary: reward
+    direction: maximize
+
+agents:
+  runtime: codex
+  model: gpt-5
+
+workspace:
+  results_dir: ./results
+```
+
+The referenced directory remains a standard Harbor task with
+`instruction.md`, `task.toml`, `environment/`, and `tests/`. CORAL derives the
+task name and agent instruction from those files, stages the complete task
+under `.coral/private/`, and starts agents from an empty Git workspace. During
+evaluation it uploads only the candidate workspace to a fresh Harbor Docker
+environment, runs Harbor's verifier, and maps every numeric reward into a
+named `Score`. `reward.primary` selects `ScoreBundle.aggregated`; it does not
+change the stored raw value.
+
+This first profile supports exactly Harbor `0.22.0`, task schema `1.4`, one
+local, single-step Linux container task, and a dedicated agent workdir that is
+empty when the container starts. It
+does not yet support registry references, datasets, multi-step or Windows
+tasks, a separate starter repository, `seed/`, `workspace.setup`, task-level
+provider selection, declared public artifacts, or bulk migration.
+`grader.entrypoint`, `grader.setup`, `grader.args`, and `grader.private` must
+not be duplicated in the Harbor-backed input form; CORAL creates the internal
+adapter configuration in the resolved run snapshot.
+
+Docker must be running, and CORAL itself must run on the host
+(`run.session: docker` is rejected because Docker-in-Docker is unsupported).
+On first use, `uv` may download Python 3.12 and the pinned Harbor runtime.
+Harbor task files, verifier logs, and trial data remain manager-only; agents
+receive only the configured instruction, reward values, and a sanitized
+summary under `eval_logs/`.
 
 ## `grader` section
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `entrypoint` | string | *required* | Setuptools-style `module.path:ClassName` resolved inside the grader venv. |
+| `entrypoint` | string | *required for legacy tasks* | Setuptools-style `module.path:ClassName` resolved inside the grader venv. Harbor-backed tasks receive an internal adapter entrypoint. |
 | `setup` | list[string] | `[]` | Shell commands run inside `.coral/private/grader_venv/` at `coral start` / `coral validate` time (typically `uv pip install -e ./grader`). |
 | `timeout` | int | `300` | Eval timeout in seconds (0 = no limit) |
 | `direction` | string | `"maximize"` | `"maximize"` or `"minimize"` — which direction is better |
@@ -137,9 +187,11 @@ CORAL bootstraps a venv at `.coral/private/grader_venv/`, runs every
 command in `grader.setup` inside it, and spawns a worker subprocess from
 that venv whenever an attempt needs grading.
 
-`grader.entrypoint` is required — leaving it empty is an error at load
-time. See [Writing a Custom Grader](/docs/guides/custom-grader) for the
-packaged-grader layout.
+`grader.entrypoint` is required for the legacy inline form — leaving it empty
+is an error at load time. Harbor-backed tasks must omit it because CORAL wires
+the pinned adapter internally. See
+[Writing a Custom Grader](/docs/guides/custom-grader) for the packaged-grader
+layout.
 
 ## `agents` section
 
@@ -251,4 +303,4 @@ Controls what shared state is enabled in `.coral/public/`:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `results_dir` | string | `"./results"` | Where to store run results |
-| `repo_path` | string | `"."` | Path to the git repository root |
+| `repo_path` | string | `"."` | Path to the git repository root. The initial Harbor-backed profile rejects a separate repository and creates an empty candidate workspace. |

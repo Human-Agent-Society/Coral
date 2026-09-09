@@ -13,6 +13,7 @@ Key concepts:
 - **Agents are the optimizers** — Claude Code (or Codex / Cursor / Kiro / OpenCode) subprocesses, each in its own git worktree.
 - **Shared state via `.coral/`** — split into `public/` (visible to agents through a runtime-specific symlink like `.claude/`, `.codex/`, `.opencode/`) and `private/` (grader venv, hidden inputs — denied to agents). The grader's own *source* is surfaced read-only to agents as `<shared_dir>/grader/` (a symlink to the real `grader/` package) so they can read how they're scored.
 - **Async eval loop** — `coral eval -m "..."` stages+commits and writes a *pending* attempt; a long-running grader daemon picks it up, grades it inside a detached worktree, and writes the final score back. Default behavior blocks until the score lands; `--no-wait` returns immediately.
+- **Harbor source mode** — a mutually exclusive `task.source` form can point at one local Harbor 0.22.0/schema 1.4 task. CORAL derives the instruction, keeps the Harbor task and raw trial logs private, uploads an empty-workspace candidate into a fresh Docker environment, and publishes only named rewards plus a sanitized summary.
 - **CLI orchestration** — 18 commands (see Commands below), grouped under `coral start / status / eval / log / ...`.
 
 ## Directory Structure
@@ -20,12 +21,13 @@ Key concepts:
 | Directory | Purpose |
 |-----------|---------|
 | `coral/types.py` | Core types: `Task`, `Score`, `ScoreBundle`, `Attempt` |
-| `coral/config.py` | OmegaConf-backed YAML configuration (`CoralConfig`, `GraderConfig`, `AgentConfig`, `GatewayConfig`, `WarmStartConfig`, `HeartbeatActionConfig`, ...) |
+| `coral/config.py` | OmegaConf-backed YAML configuration (`CoralConfig`, `TaskRewardConfig`, `GraderConfig`, `AgentConfig`, `GatewayConfig`, `WarmStartConfig`, `HeartbeatActionConfig`, ...) |
+| `coral/harbor_task.py` | Initial-profile local Harbor task inspection, immutable source digest, and private staging |
 | `coral/task/` | Frontend-independent task validation with structured reports, progress events, and baseline grading |
 | `coral/agent/` | Agent lifecycle: `manager.py` (multi-agent supervisor), `runtime.py` (abstract), `state.py`, `heartbeat.py`, `exit_classifier.py`, `warmstart.py`, `process.py`, `registry.py` |
 | `coral/sandbox/` | Pluggable agent sandboxing (`agents.sandbox`): `protocol.py` (`SandboxProvider` + spec/context types), `registry.py` (name or `module:Class` entrypoint resolution), `srt.py` (built-in srt provider: OS-level FS/network enforcement + allow-all proxy) |
 | `coral/agent/builtin/` | Concrete runtimes: `claude_code`, `codex`, `cursor_agent`, `kiro`, `opencode` |
-| `coral/grader/` | Grader stack: `protocol.py`, `base.py`, `task_grader.py`, `loader.py`, `subprocess_grader.py`, `daemon.py` (long-running grader), `builtin/function_grader.py` |
+| `coral/grader/` | Grader stack: `protocol.py`, `base.py`, `task_grader.py`, `loader.py`, `subprocess_grader.py`, `harbor.py` (pinned local-task adapter), `daemon.py`, `builtin/function_grader.py` |
 | `coral/hub/` | Shared state: `attempts.py`, `notes.py`, `skills.py`, `checkpoint.py` (git-tracked snapshots of `.coral/public/`), `heartbeat.py`, `prompts/` (built-in heartbeat prompts) |
 | `coral/hooks/` | `post_commit.py` — implements `submit_eval` (called by `coral eval`) |
 | `coral/workspace/` | Run layout: `project.py` (run dir setup), `worktree.py` (per-agent git worktrees + symlinks), `repo.py` (clone/init), `grader_env.py` (`.coral/private/grader_venv/`) |
@@ -53,6 +55,8 @@ coral start --config task.yaml
     │   │   └── grader_daemon.pid, grader_daemon_heartbeat
     │   ├── private/
     │   │   ├── grader_venv/   isolated uv venv where the grader entrypoint runs
+    │   │   ├── harbor_task/   staged task/tests/solution for task.source mode
+    │   │   ├── harbor_runs/   raw Harbor trial data (never agent-visible)
     │   │   └── ...        anything listed in grader.private (hidden from agents)
     │   ├── config.yaml, config_dir
     │   └── .git/          checkpoint repo for shared-state versioning
@@ -84,7 +88,7 @@ Each agent loop:
 
 - **Python 3.11+**, Hatchling build, **uv** for environment management.
 - **Core deps**: `pyyaml`, `omegaconf`, `starlette` (dashboard).
-- **Optional extras**: `swebench`, `datasets`, `docker`, `harbor` (heavyweight task graders).
+- **Harbor adapter runtime**: `uv` launches exact `harbor==0.22.0` in an isolated Python 3.12 environment; Docker is required, while CORAL's host interpreter remains Python 3.11+.
 - **Runtimes** are external CLIs invoked as subprocesses — Claude Code (`claude`), Codex (`codex`), Cursor Agent (`cursor-agent`), Kiro (`kiro`), OpenCode (`opencode`).
 
 ## Commands
@@ -165,6 +169,8 @@ uv run ruff format .
 
 3. **Wiring a grader**: `grader.entrypoint = "module.path:ClassName"` (required) plus `grader.setup: ["uv pip install -e ./grader"]`. The daemon resolves the entrypoint inside `.coral/private/grader_venv/` via `coral.grader.subprocess_grader.SubprocessGrader`. The legacy `eval/grader.py` auto-discovery has been removed. Hidden data (answer keys, test fixtures) must be declared under `grader.private` (copied into `.coral/private/`, read via `self.private_dir`) — `.coral/private/` is the only path agent runtimes are denied. The rest of the grader package is the opposite of hidden: **everything inside `grader/` is visible to agents** — the whole source is surfaced read-only at `<shared_dir>/grader/` (a symlink to the real package) so they can read how they're scored. So a `grader.private` path must live **outside** `grader/` (conventionally a sibling `taskdata/`, declared as `taskdata`) — `coral validate` errors if one is inside the package, since it would be both copied to `.coral/private/` *and* leaked via the surfaced source. Non-secret bundled data read via `Path(__file__).parent` may sit inside `grader/`, but it's visible — never put a secret there. `FunctionGrader` exists for wrapping plain callables but is no longer wired through `task.yaml` — ship a thin `TaskGrader` subclass instead.
 
+   The exception is the Harbor-backed `task.source` form: user config omits portable grader fields, `config._configure_harbor_task` resolves the local task and wires `coral.grader.harbor:HarborTaskGrader` into the run snapshot, and `workspace.project` stages the complete Harbor task privately. The initial adapter supports only a local, single-step Linux container task and an empty candidate workspace; do not silently widen it to registry, dataset, multi-step, host-worktree, or bulk-migration support.
+
 4. **Eval is async by default**: `coral eval` writes a pending `Attempt` to `.coral/public/attempts/<hash>.json` and the daemon writes the final `ScoreBundle` back. `grader.max_pending_per_agent` (default 1) caps in-flight submissions per agent; `grader.parallel.max_workers` (default 1) controls daemon concurrency — bump only when the grader is concurrency-safe.
 
 5. **Hub modules** are pure I/O over `.coral/public/`:
@@ -186,11 +192,14 @@ uv run ruff format .
 | `pyproject.toml` | Package config, dependencies, `coral` console entrypoint |
 | `coral/types.py` | `Task`, `Score`, `ScoreBundle`, `Attempt` |
 | `coral/config.py` | YAML config dataclasses + OmegaConf merge + dotlist overrides |
+| `coral/harbor_task.py` | Validate/digest/stage a local Harbor task without importing Harbor into CORAL's host interpreter |
 | `coral/grader/protocol.py` | `GraderInterface` protocol |
 | `coral/grader/base.py` | `BaseGrader` base class |
 | `coral/grader/task_grader.py` | `TaskGrader` — recommended base for task graders |
 | `coral/grader/loader.py` | Resolve grader from `grader.entrypoint` (subprocess in grader venv) |
 | `coral/grader/subprocess_grader.py` | Worker-subprocess grader runtime used by entrypoint path |
+| `coral/grader/harbor.py` | Harbor reward adapter and private/public result boundary |
+| `coral/_runners/harbor_task.py` | Python 3.12 subprocess entrypoint using public Harbor Trial/Task APIs |
 | `coral/grader/daemon.py` | Long-running grader daemon (one per run) |
 | `coral/grader/builtin/function_grader.py` | Wrap functions as graders |
 | `coral/workspace/project.py` | `setup_run_dir()` — builds `.coral/{public,private}/`, clones repo, seeds bundled skills/agents |

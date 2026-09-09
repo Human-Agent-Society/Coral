@@ -9,6 +9,30 @@ from typing import Any
 import yaml
 from omegaconf import MISSING, OmegaConf
 
+from coral.harbor_task import (
+    HARBOR_ADAPTER_MARKER,
+    HARBOR_GRADER_ENTRYPOINT,
+    HARBOR_PRIVATE_TASK_DIR,
+    HARBOR_RUNTIME_VERSION,
+    inspect_local_harbor_task,
+)
+
+
+@dataclass
+class TaskRewardConfig:
+    """CORAL's objective selection for a Harbor-backed task."""
+
+    primary: str = ""
+    direction: str = "maximize"
+
+    def __post_init__(self) -> None:
+        if not self.primary.strip():
+            raise ValueError("task.reward.primary must be a non-empty Harbor reward key")
+        if self.direction not in ("maximize", "minimize"):
+            raise ValueError(
+                f"task.reward.direction must be 'maximize' or 'minimize', got {self.direction!r}"
+            )
+
 
 @dataclass
 class TaskConfig:
@@ -17,6 +41,12 @@ class TaskConfig:
     name: str = MISSING
     description: str = MISSING
     tips: str = ""
+    source: str = ""
+    reward: TaskRewardConfig | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.reward, dict):
+            self.reward = TaskRewardConfig(**self.reward)
 
 
 @dataclass
@@ -475,9 +505,10 @@ class CoralConfig:
         layers.append(OmegaConf.create(data))
         combined = OmegaConf.merge(*layers) if len(layers) > 1 else layers[0]
         combined_dict: dict[str, Any] = OmegaConf.to_container(combined)  # type: ignore[assignment]
-        combined_dict = _preprocess(combined_dict)
+        combined_dict = _preprocess(combined_dict, base_dir=base_dir)
         merged = OmegaConf.merge(schema, OmegaConf.create(combined_dict))
         cfg: CoralConfig = OmegaConf.to_object(merged)  # type: ignore[assignment]
+        _validate_harbor_runtime_config(cfg)
         return cfg
 
     def to_dict(self) -> dict[str, Any]:
@@ -485,6 +516,11 @@ class CoralConfig:
         container: dict[str, Any] = OmegaConf.to_container(sc, resolve=True)  # type: ignore[assignment]
         # Remove internal-only fields
         container.pop("task_dir", None)
+        task_data = container.get("task", {})
+        if not task_data.get("source"):
+            task_data.pop("source", None)
+        if task_data.get("reward") is None:
+            task_data.pop("reward", None)
         # Serialize heartbeat is_global as "global" for YAML compat
         for h in container.get("agents", {}).get("heartbeat", []):
             h["global"] = h.pop("is_global", False)
@@ -503,7 +539,21 @@ class CoralConfig:
         overrides = OmegaConf.from_dotlist(dotlist)
         merged = OmegaConf.merge(base, overrides)
         cfg: CoralConfig = OmegaConf.to_object(merged)  # type: ignore[assignment]
+        if cfg.task.source:
+            if cfg.task.reward is None:
+                raise ValueError("Harbor-backed task requires task.reward")
+            cfg.grader.direction = cfg.task.reward.direction
+            cfg.grader.args["primary_reward"] = cfg.task.reward.primary
+        _validate_harbor_runtime_config(cfg)
         return cfg
+
+
+def _validate_harbor_runtime_config(config: CoralConfig) -> None:
+    if config.task.source and config.run.session == "docker":
+        raise ValueError(
+            "Harbor-backed tasks require CORAL to run on the host; "
+            "run.session=docker would require unsupported Docker-in-Docker"
+        )
 
 
 def _apply_binding(entry: dict[str, Any], binding: Any) -> None:
@@ -641,8 +691,140 @@ def _load_preset(ref: Any, base_dir: Path | None) -> dict[str, Any]:
     return loaded
 
 
-def _preprocess(data: dict[str, Any]) -> dict[str, Any]:
+def _configure_harbor_task(
+    data: dict[str, Any],
+    *,
+    base_dir: Path | None,
+) -> None:
+    """Hydrate the local Harbor source form into CORAL's runtime config.
+
+    User-authored ``task.yaml`` keeps Harbor-owned fields out of CORAL.  The
+    resolved name, instruction, digest, and built-in grader wiring are added
+    only to the in-memory/run snapshot used by CORAL.
+    """
+    task_data = data.get("task")
+    if not isinstance(task_data, dict):
+        return
+    task_data = dict(task_data)
+    data["task"] = task_data
+
+    source = task_data.get("source")
+    if source in (None, ""):
+        if task_data.get("reward") not in (None, {}):
+            raise ValueError("task.reward is only valid when task.source is set")
+        return
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("task.source must be a non-empty string")
+    task_data["source"] = source.strip()
+
+    raw_grader_data = data.get("grader")
+    if raw_grader_data is None:
+        grader_data: dict[str, Any] = {}
+    elif not isinstance(raw_grader_data, dict):
+        raise ValueError("grader must be a mapping")
+    else:
+        grader_data = dict(raw_grader_data)
+    grader_args = grader_data.get("args") or {}
+    hydrated = (
+        grader_data.get("entrypoint") == HARBOR_GRADER_ENTRYPOINT
+        and isinstance(grader_args, dict)
+        and grader_args.get("harbor_adapter") == HARBOR_ADAPTER_MARKER
+    )
+
+    reward_data = task_data.get("reward")
+    if not isinstance(reward_data, dict):
+        raise ValueError("Harbor-backed task requires task.reward with primary and direction")
+    primary = reward_data.get("primary")
+    direction = reward_data.get("direction", "maximize")
+    if not isinstance(primary, str) or not primary.strip():
+        raise ValueError("task.reward.primary must be a non-empty Harbor reward key")
+    if direction not in ("maximize", "minimize"):
+        raise ValueError(
+            f"task.reward.direction must be 'maximize' or 'minimize', got {direction!r}"
+        )
+    reward_data = {"primary": primary.strip(), "direction": direction}
+    task_data["reward"] = reward_data
+
+    if hydrated:
+        grader_args = dict(grader_args)
+        required = ("name", "description")
+        missing = [field_name for field_name in required if not task_data.get(field_name)]
+        if missing:
+            raise ValueError(
+                "Resolved Harbor run config is missing task metadata: " + ", ".join(missing)
+            )
+        grader_data["direction"] = direction
+        grader_args["primary_reward"] = primary.strip()
+        grader_data["args"] = grader_args
+        data["grader"] = grader_data
+        return
+
+    duplicated_task_fields = [
+        field_name for field_name in ("name", "description", "tips") if field_name in task_data
+    ]
+    if duplicated_task_fields:
+        raise ValueError(
+            "Harbor-backed task.yaml must not duplicate Harbor-owned fields: "
+            + ", ".join(f"task.{field_name}" for field_name in duplicated_task_fields)
+        )
+
+    unsupported_grader_fields = sorted(
+        set(grader_data) - {"timeout", "max_pending_per_agent", "parallel"}
+    )
+    if unsupported_grader_fields:
+        raise ValueError(
+            "Harbor-backed task.yaml cannot define portable grader fields: "
+            + ", ".join(f"grader.{field_name}" for field_name in unsupported_grader_fields)
+        )
+
+    raw_workspace_data = data.get("workspace")
+    if raw_workspace_data is None:
+        workspace_data: dict[str, Any] = {}
+    elif not isinstance(raw_workspace_data, dict):
+        raise ValueError("workspace must be a mapping")
+    else:
+        workspace_data = raw_workspace_data
+    unsupported_workspace_fields = sorted(
+        field_name
+        for field_name in ("repo_path", "setup")
+        if field_name in workspace_data and workspace_data[field_name] not in (None, "", ".", [])
+    )
+    if unsupported_workspace_fields:
+        raise ValueError(
+            "Initial Harbor compatibility creates an empty CORAL workspace and does not "
+            "support: "
+            + ", ".join(f"workspace.{field_name}" for field_name in unsupported_workspace_fields)
+        )
+
+    descriptor = inspect_local_harbor_task(source, base_dir=base_dir)
+    task_data["name"] = descriptor.name
+    task_data["description"] = descriptor.instruction
+    task_data["tips"] = ""
+
+    grader_data["entrypoint"] = HARBOR_GRADER_ENTRYPOINT
+    grader_data["direction"] = direction
+    grader_data["args"] = {
+        "harbor_adapter": HARBOR_ADAPTER_MARKER,
+        "harbor_runtime_version": HARBOR_RUNTIME_VERSION,
+        "harbor_schema_version": descriptor.schema_version,
+        "harbor_task_digest": descriptor.digest,
+        "harbor_task_name": descriptor.name,
+        "harbor_task_package_version": descriptor.package_version,
+        "harbor_task_subdir": HARBOR_PRIVATE_TASK_DIR,
+        "primary_reward": primary.strip(),
+    }
+    data["task"] = task_data
+    data["grader"] = grader_data
+
+
+def _preprocess(
+    data: dict[str, Any],
+    *,
+    base_dir: Path | None = None,
+) -> dict[str, Any]:
     """Transform legacy keys and normalize heartbeat config before OmegaConf merge."""
+    _configure_harbor_task(data, base_dir=base_dir)
+
     # Reject removed grader.type / grader.module fields with migration guidance.
     grader_data = data.get("grader")
     if isinstance(grader_data, dict):

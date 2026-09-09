@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from coral.config import CoralConfig
+from coral.harbor_task import stage_local_harbor_task
 from coral.hub._island import island_root
 from coral.hub.checkpoint import init_checkpoint_repo
 from coral.workspace.repo import (
@@ -214,7 +215,7 @@ def create_project(config: CoralConfig, config_dir: Path | None = None) -> Proje
                 └── agents/              # worktrees off repo/
     """
     results_dir = Path(config.workspace.results_dir).resolve()
-    source_repo = Path(config.workspace.repo_path).resolve()
+    source_repo = None if config.task.source else Path(config.workspace.repo_path).resolve()
 
     task_slug = slugify(config.task.name)
     task_dir = results_dir / task_slug
@@ -242,6 +243,17 @@ def create_project(config: CoralConfig, config_dir: Path | None = None) -> Proje
     (coral_dir / "public").mkdir(parents=True, exist_ok=True)
     (coral_dir / "private").mkdir(parents=True, exist_ok=True)
     agents_dir.mkdir(parents=True, exist_ok=True)
+
+    if config.task.source:
+        expected_digest = str(config.grader.args.get("harbor_task_digest", ""))
+        if not expected_digest:
+            raise ValueError("Resolved Harbor task configuration is missing its source digest")
+        stage_local_harbor_task(
+            config.task.source,
+            base_dir=effective_config_dir,
+            private_dir=coral_dir / "private",
+            expected_digest=expected_digest,
+        )
 
     if config.islands.count == 1:
         _build_island_subtree(
@@ -283,14 +295,24 @@ def create_project(config: CoralConfig, config_dir: Path | None = None) -> Proje
         logger.info(f"Symlinked {latest_link} -> {rel}")
 
     # Clone source repo into run_dir/repo/
-    repo_dir = clone_or_init_repo(source_repo, run_repo)
+    if config.task.source:
+        # Gate B starts from an empty, agent-owned workspace.  The Harbor task
+        # definition, tests, and solution stay under .coral/private/ and are
+        # uploaded only by the manager-side verifier adapter.
+        empty_workspace = coral_dir / "private" / "harbor_workspace"
+        empty_workspace.mkdir()
+        repo_dir = clone_or_init_repo(empty_workspace, run_repo)
+    else:
+        if source_repo is None:
+            raise RuntimeError("Legacy workspace source unexpectedly missing")
+        repo_dir = clone_or_init_repo(source_repo, run_repo)
 
     # Resolve task_dir (directory containing task.yaml)
     task_source_dir = config.task_dir or config_dir or Path.cwd()
 
     # Auto-copy seed/ into repo (if present in task directory)
     seed_dir = task_source_dir / "seed"
-    if seed_dir.is_dir():
+    if not config.task.source and seed_dir.is_dir():
         copy_seed_directory(seed_dir, repo_dir)
 
     # Copy private grader data into .coral/ (hidden from agents)

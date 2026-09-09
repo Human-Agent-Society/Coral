@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from coral.config import CoralConfig
+from coral.harbor_task import stage_local_harbor_task
 from coral.types import ScoreBundle, Task
 
 
@@ -188,6 +189,18 @@ def validate_task(task_dir: Path) -> ValidationReport:
             )
         )
 
+    if config.task.source and (task_dir / "seed").exists():
+        diagnostics.append(
+            ValidationDiagnostic(
+                code="task.harbor.seed_mixed",
+                message=(
+                    "Harbor-backed task.yaml cannot also provide seed/; the initial "
+                    "compatibility profile starts from an empty agent-owned workspace"
+                ),
+                path="seed",
+            )
+        )
+
     # The grader package is surfaced read-only to agents at <shared_dir>/grader/.
     # Private paths inside it would therefore be copied into .coral/private/ and
     # exposed through the surfaced source at the same time.
@@ -302,8 +315,10 @@ async def run_validation_async(
             # Mirror the copy loop below: a seed/ that exists but contributes
             # nothing to the workspace (empty, or only __pycache__) is treated
             # as absent so the progress messages describe what actually runs.
-            has_seed = seed_dir.is_dir() and any(
-                item.name != "__pycache__" for item in seed_dir.iterdir()
+            has_seed = (
+                not config.task.source
+                and seed_dir.is_dir()
+                and any(item.name != "__pycache__" for item in seed_dir.iterdir())
             )
             if has_seed:
                 for item in seed_dir.iterdir():
@@ -324,6 +339,22 @@ async def run_validation_async(
             coral_dir = tmpdir / ".coral"
             private_dir = coral_dir / "private"
             private_dir.mkdir(parents=True)
+
+            if config.task.source:
+                expected_digest = str(config.grader.args.get("harbor_task_digest", ""))
+                if not expected_digest:
+                    raise ValueError(
+                        "Resolved Harbor task configuration is missing its source digest"
+                    )
+                stage_local_harbor_task(
+                    config.task.source,
+                    base_dir=task_dir,
+                    private_dir=private_dir,
+                    expected_digest=expected_digest,
+                )
+                workspace_message = (
+                    "Harbor source staged privately; using an empty Gate B candidate workspace"
+                )
 
             for private_path_str in config.grader.private:
                 src = Path(private_path_str)
